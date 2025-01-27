@@ -1,18 +1,23 @@
-require("@nomicfoundation/hardhat-toolbox");
+require("@nomicfoundation/hardhat-ethers");
 
 module.exports = {
   solidity: "0.8.28",
   networks: {
     ganache: {
-      url: "http://127.0.0.1:8545", // URL RPC fornito da Ganache
-      chainId: 1337, // Chain ID di Ganache
+      url: "http://127.0.0.1:8545",
+      chainId: 1337,
       accounts: [
-        "aff8413b1717fce7a6a3f731978507686e5b01c4ffddcc2524c66e43d04358a4", 
-        "519be3a5b3cab1db6831299d2077109dd19837493c2a57d50f86edd467ac3fcf",
-        "45ea66e4b490e5a1a7b9b91d3c960fc4f46f052e22280e41ef07aed241ba9844",
-        "f5ec374a7f87aecd09f29dca09eb746532b91d8287b4a7c93917c8e068bc9836",
-        "55846ad1215c9f1f71779f3c508d44be195b0a99abfe383d3eb0c2268b64ee9a",
-      ], 
+        "ed9baf3b0cb67ea16f39aa019b8be3d9b41a0c56d8a21bb79ffc8ba267153e83", 
+        "166ae1b9f529283e128abad021d6d1949771bc1a09757e01c0a8817263700372",
+        "65bd6eb3ad9042cf6ed892b7b70fc84b59fd9f813a3872e046d857c722da4612",
+        "d8f6deaac973724315679b0d24ed0673e58833cfaf15a95cdfb734af17e01a1c",
+        "c23d6210a24492729a0138f58c20f5133cb6fabb05663080ace377bdea2e79b8",
+      ],
     },
+  },
+  paths: {
+    sources: "./contracts",
+    artifacts: "./artifacts",
+    cache: "./cache",
   },
 };
