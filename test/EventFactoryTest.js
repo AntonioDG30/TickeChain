@@ -75,7 +75,7 @@ describe("EventFactory", function () {
     const event = await eventFactory.events(0);
 
     // Verifichiamo che il nome dell'evento sia vuoto, indicando che è stato eliminato.
-    expect(event.name).to.equal("");
+    expect(event.name).to.equal(""); // Verifica che l'evento sia stato eliminato
   });
 
   // Test: verifica che sia possibile cambiare lo stato di un evento.
