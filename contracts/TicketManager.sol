@@ -35,7 +35,7 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
      * @param _to Indirizzo del destinatario del biglietto.
      * @param _uri URI con i metadati del biglietto.
      */
-    function mintTicket(address _to, string memory _uri) external onlyOwner whenNotPaused {
+    function mintTicket(address _to, string memory _uri) external whenNotPaused {
         uint256 ticketId = ticketIdCounter;
         _safeMint(_to, ticketId);
         _setTokenURI(ticketId, _uri);

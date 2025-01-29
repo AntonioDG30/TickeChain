@@ -76,21 +76,25 @@ contract PaymentManager is Pausable, Ownable {
      * @param _amount Quantità di token da rimborsare.
      */
     function processRefund(address _user, uint256 _amount) external onlyOwner whenNotPaused {
-    require(_user != address(0), "Indirizzo utente non valido");
-    require(_amount > 0, "L'importo deve essere maggiore di zero");
+        require(_user != address(0), "Indirizzo utente non valido");
+        require(_amount > 0, "L'importo deve essere maggiore di zero");
 
-    // Verifica che il contratto abbia abbastanza fondi nel token ERC-20
-    uint256 contractBalance = paymentToken.balanceOf(address(this));
-    require(contractBalance >= _amount, "Fondi del contratto insufficienti");
+        // Verifica che il contratto abbia abbastanza fondi nel token ERC-20
+        uint256 contractBalance = paymentToken.balanceOf(address(this));
+        require(contractBalance >= _amount, "Fondi del contratto insufficienti");
 
-    // Trasferiamo i token all'utente
-    require(
-        paymentToken.transfer(_user, _amount),
-        "Trasferimento dei token fallito"
-    );
+        // 🔹 Aggiungiamo l'importo al saldo dell'utente prima del rimborso
+        balances[_user] += _amount;
 
-    emit RefundProcessed(_user, _amount);
-}
+        // Trasferiamo i token all'utente
+        require(
+            paymentToken.transfer(_user, _amount),
+            "Trasferimento dei token fallito"
+        );
+
+        emit RefundProcessed(_user, _amount);
+    }
+
 
 
     /**
