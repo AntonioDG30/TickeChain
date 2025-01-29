@@ -3,40 +3,57 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("TicketManager", function () {
-  // Variabili per memorizzare il contratto TicketManager e gli account di test.
-  let TicketManager; // Factory del contratto TicketManager
-  let ticketManager; // Istanza del contratto distribuito
-  let owner, addr1, addr2; // Account di test: proprietario e due altri utenti
+  let TicketManager;
+  let ticketManager;
+  let token;
+  let eventFactory;
+  let owner, addr1, addr2;
 
-  // Questo hook `beforeEach` viene eseguito prima di ogni test. Serve a garantire che ogni test parta con un ambiente "pulito".
   beforeEach(async function () {
-    // Otteniamo la factory del contratto TicketManager per poterlo distribuire.
+    // Deploy di EventFactory
+    const EventFactory = await ethers.getContractFactory("EventFactory");
+    eventFactory = await EventFactory.deploy();
+    await eventFactory.waitForDeployment();
+
+    // Deploy del token ERC-20 Mock
+    const ERC20Mock = await ethers.getContractFactory("ERC20Mock");
+    token = await ERC20Mock.deploy("Test Token", "TTK", ethers.parseEther("1000"));
+    await token.waitForDeployment();
+
+    // Deploy di TicketManager passando l'indirizzo di EventFactory
     TicketManager = await ethers.getContractFactory("TicketManager");
-
-    // Recuperiamo i signer (account di test) forniti da Hardhat.
     [owner, addr1, addr2] = await ethers.getSigners();
-
-    // Distribuiamo il contratto TicketManager sulla blockchain di test con i parametri `EventTicket` (nome) e `ETK` (simbolo).
-    ticketManager = await TicketManager.deploy("EventTicket", "ETK");
-
-    // Aspettiamo che il contratto venga distribuito correttamente.
+    ticketManager = await TicketManager.deploy("EventTicket", "ETK", eventFactory.target);
     await ticketManager.waitForDeployment();
+
+    // Trasferiamo il token a addr1 e addr2
+    await token.transfer(addr1.address, ethers.parseEther("100"));
+    await token.transfer(addr2.address, ethers.parseEther("100"));
+
+    // Creare un evento (passando eventId = 0)
+    const futureDate = Math.floor(Date.now() / 1000) + 86400;
+    await eventFactory.createEvent("Concerto Test", "Milano", futureDate, ethers.parseEther("0.1"), 100);
+
+    // Verifica che l'evento sia stato creato
+    const event = await eventFactory.events(0);
+    expect(event.name).to.equal("Concerto Test");
+
+    // Impostare lo stato dell'evento su OPEN
+    await eventFactory.changeEventState(0, 1); // 1 corrisponde a OPEN
   });
 
-  // Test: verifica che il proprietario possa emettere un biglietto.
   it("Dovrebbe permettere al proprietario di emettere un biglietto", async function () {
-    // Il proprietario del contratto emette un nuovo biglietto per `addr1`.
-    await ticketManager.mintTicket(addr1.address, "https://example.com/ticket1");
+    // Mintare il biglietto per addr1, passare anche l'eventId (0)
+    await ticketManager.mintTicket(addr1.address, "https://example.com/ticket1", 0);  // Passiamo eventId = 0
 
-    // Recuperiamo il proprietario del biglietto con ID 0 e verifichiamo che sia `addr1`.
     const ownerOfTicket = await ticketManager.ownerOf(0);
-    expect(ownerOfTicket).to.equal(addr1.address); // Controlliamo che l'indirizzo corrisponda.
+    expect(ownerOfTicket).to.equal(addr1.address); // Verifica che l'indirizzo corrisponda
   });
 
   // Test: verifica che un biglietto possa essere trasferito tra utenti.
   it("Dovrebbe trasferire un biglietto", async function () {
     // Il proprietario emette un biglietto per `addr1`.
-    await ticketManager.mintTicket(addr1.address, "https://example.com/ticket1");
+    await ticketManager.mintTicket(addr1.address, "https://example.com/ticket1", 0);
 
     // `addr1` trasferisce il biglietto con ID 0 a `addr2`.
     await ticketManager.connect(addr1).transferTicket(addr1.address, addr2.address, 0);
@@ -49,7 +66,7 @@ describe("TicketManager", function () {
   // Test: verifica che il proprietario possa validare il biglietto.
   it("Dovrebbe validare un biglietto", async function () {
     // Il proprietario emette un biglietto per `addr1`.
-    await ticketManager.mintTicket(addr1.address, "https://example.com/ticket1");
+    await ticketManager.mintTicket(addr1.address, "https://example.com/ticket1", 0);
 
     // `addr1` valida il biglietto con ID 0.
     const tx = await ticketManager.connect(addr1).validateTicket(0);
@@ -69,7 +86,7 @@ describe("TicketManager", function () {
   // Test: verifica che il proprietario possa rimborsare un biglietto e che venga distrutto.
   it("Dovrebbe rimborsare un biglietto", async function () {
     // Il proprietario emette un biglietto per `addr1`.
-    await ticketManager.mintTicket(addr1.address, "https://example.com/ticket1");
+    await ticketManager.mintTicket(addr1.address, "https://example.com/ticket1", 0);
 
     // `addr1` rimborsa il biglietto con ID 0.
     const tx = await ticketManager.connect(addr1).refundTicket(0);

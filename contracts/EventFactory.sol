@@ -43,6 +43,23 @@ contract EventFactory is Pausable, Ownable {
         _;
     }
 
+    // Funzione per verificare se un evento è annullato
+    function isEventCancelled(uint256 eventId) external view returns (bool) {
+        require(eventId < eventIdCounter, "Evento non esistente");
+        return events[eventId].state == EventState.CANCELLED;
+    }
+
+    function isEventCreator(address user, uint256 eventId) external view returns (bool) {
+        require(eventId < eventIdCounter, "Evento non esistente");
+        return events[eventId].creator == user;
+    }
+
+    function isEventOpen(uint256 eventId) external view returns (bool) {
+        require(eventId < eventIdCounter, "Evento non esistente");
+        return events[eventId].state == EventState.OPEN;
+    }
+
+
     /**
      * @dev Crea un nuovo evento con i dettagli specificati.
      * @param _name Nome dell'evento.

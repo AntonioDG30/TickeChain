@@ -4,6 +4,8 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./EventFactory.sol";
+
 
 /**
  * @title TicketManager
@@ -13,6 +15,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract TicketManager is ERC721URIStorage, Pausable, Ownable {
     
     uint256 private ticketIdCounter; // Contatore per assegnare ID univoci ai biglietti
+    EventFactory public eventFactory;
 
     // Mapping per tenere traccia dei rimborsi
     mapping(uint256 => bool) public refundedTickets;
@@ -28,14 +31,19 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
      * @param _name Nome del token ERC-721.
      * @param _symbol Simbolo del token ERC-721.
      */
-    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {}
+    constructor(string memory _name, string memory _symbol, address _eventFactory) ERC721(_name, _symbol) {
+        eventFactory = EventFactory(_eventFactory);
+    }
+
 
     /**
      * @dev Emette un nuovo biglietto NFT.
      * @param _to Indirizzo del destinatario del biglietto.
      * @param _uri URI con i metadati del biglietto.
      */
-    function mintTicket(address _to, string memory _uri) external whenNotPaused {
+    function mintTicket(address _to, string memory _uri, uint256 eventId) external whenNotPaused {
+        require(eventFactory.isEventOpen(eventId), "L'evento non e' piu disponibile per l'acquisto");
+        
         uint256 ticketId = ticketIdCounter;
         _safeMint(_to, ticketId);
         _setTokenURI(ticketId, _uri);

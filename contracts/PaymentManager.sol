@@ -5,6 +5,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+// Importa EventFactory.sol
+import "./EventFactory.sol";
+
+
 /**
  * @title PaymentManager
  * @dev Contratto per gestire pagamenti e rimborsi tramite token ERC-20.
@@ -12,6 +16,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract PaymentManager is Pausable, Ownable {
     IERC20 public paymentToken; // Token ERC-20 utilizzato per i pagamenti
+    EventFactory public eventFactory;
 
     // Mapping per tenere traccia dei fondi depositati dagli utenti
     mapping(address => uint256) private balances;
@@ -25,10 +30,14 @@ contract PaymentManager is Pausable, Ownable {
      * @dev Costruttore del contratto.
      * @param _paymentToken Indirizzo del contratto del token ERC-20 da utilizzare.
      */
-    constructor(address _paymentToken) {
+    constructor(address _paymentToken, address _eventFactory) {
         require(_paymentToken != address(0), "Indirizzo del token non valido");
+        require(_eventFactory != address(0), "Indirizzo del contratto EventFactory non valido");
+        
         paymentToken = IERC20(_paymentToken);
+        eventFactory = EventFactory(_eventFactory);  // Inizializza EventFactory
     }
+
 
     /**
      * @dev Permette agli utenti di depositare fondi nel contratto.
@@ -37,17 +46,20 @@ contract PaymentManager is Pausable, Ownable {
     function depositFunds(uint256 _amount) external whenNotPaused {
         require(_amount > 0, "L'importo deve essere maggiore di zero");
 
-        // Trasferiamo i token dal mittente al contratto
+        uint256 userBalance = balances[msg.sender];
+
+        // Trasferiamo i token prima di aggiornare il saldo
         require(
             paymentToken.transferFrom(msg.sender, address(this), _amount),
             "Trasferimento dei token fallito"
         );
 
-        // Aggiorniamo il saldo dell'utente
-        balances[msg.sender] += _amount;
+        // Aggiorniamo il saldo dell'utente una sola volta
+        balances[msg.sender] = userBalance + _amount;
 
         emit FundsDeposited(msg.sender, _amount);
     }
+
 
     /**
      * @dev Permette agli utenti di ritirare i propri fondi.
@@ -75,15 +87,20 @@ contract PaymentManager is Pausable, Ownable {
      * @param _user Indirizzo dell'utente da rimborsare.
      * @param _amount Quantità di token da rimborsare.
      */
-    function processRefund(address _user, uint256 _amount) external onlyOwner whenNotPaused {
+    function processRefund(address _user, uint256 _amount, uint256 eventId) external onlyOwner whenNotPaused {
         require(_user != address(0), "Indirizzo utente non valido");
         require(_amount > 0, "L'importo deve essere maggiore di zero");
 
+        // Verifica se l'evento è stato annullato
+        require(eventFactory.isEventCancelled(eventId), "L'evento non e' stato annullato");
+
         // Verifica che il contratto abbia abbastanza fondi nel token ERC-20
         uint256 contractBalance = paymentToken.balanceOf(address(this));
-        require(contractBalance >= _amount, "Fondi del contratto insufficienti");
+        if (contractBalance < _amount) {
+            revert("Fondi del contratto insufficienti");
+        }
 
-        // 🔹 Aggiungiamo l'importo al saldo dell'utente prima del rimborso
+        // Aggiorniamo il saldo prima del trasferimento
         balances[_user] += _amount;
 
         // Trasferiamo i token all'utente
@@ -94,6 +111,7 @@ contract PaymentManager is Pausable, Ownable {
 
         emit RefundProcessed(_user, _amount);
     }
+
 
 
 
