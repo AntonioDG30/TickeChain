@@ -178,6 +178,14 @@ contract EventFactory is Pausable, Ownable {
     }
 
     /**
+     * @dev Restituisce il numero totale di eventi creati.
+     * @return uint256 Il numero totale di eventi.
+     */
+    function getTotalEvents() external view returns (uint256) {
+        return eventIdCounter;
+    }
+
+    /**
      * @dev Sospende il contratto, disabilitando le funzioni che modificano lo stato.
      */
     function pause() external onlyOwner { // Solo il proprietario può sospendere il contratto
