@@ -10,7 +10,6 @@ import PaymentManagerABI from "../../../artifacts/contracts/PaymentManager.sol/P
 const provider = window.ethereum
   ? new BrowserProvider(window.ethereum)  // MetaMask per transazioni
   : new JsonRpcProvider("http://127.0.0.1:7545"); // Ganache
-console.log("🔍 Provider in uso:", provider);
 
 // Recuperiamo gli indirizzi dal file JSON
 const EVENT_FACTORY_ADDRESS = contractAddresses.EventFactory;

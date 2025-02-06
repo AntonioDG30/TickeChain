@@ -65,6 +65,9 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
         // Incrementa l'ID del biglietto per il prossimo ticket
         ticketIdCounter++;
 
+        // ⚡ Decrementiamo i biglietti disponibili nell'evento
+        eventFactory.decreaseTicketCount(eventId);
+
         // Emmette l'evento TicketMinted per tracciare l'emissione del biglietto
         emit TicketMinted(ticketId, _to, _uri);
     }

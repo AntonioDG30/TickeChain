@@ -177,6 +177,14 @@ contract EventFactory is Pausable, Ownable {
         emit EventStateChanged(_eventId, _newState); // Emmette un evento che indica che lo stato dell'evento è cambiato
     }
 
+    function decreaseTicketCount(uint256 eventId) external {
+        require(events[eventId].state == EventState.OPEN, "L'evento non e' aperto per l'acquisto");
+        require(events[eventId].ticketsAvailable > 0, "Biglietti esauriti");
+
+        events[eventId].ticketsAvailable -= 1;
+    }
+
+
     /**
      * @dev Restituisce il numero totale di eventi creati.
      * @return uint256 Il numero totale di eventi.
