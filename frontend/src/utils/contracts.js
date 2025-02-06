@@ -1,4 +1,4 @@
-import { BrowserProvider, Contract } from "ethers";
+import { JsonRpcProvider, BrowserProvider, Contract } from "ethers";
 import contractAddresses from "./contract-addresses.json";
 
 // Importiamo gli ABI direttamente dagli artifacts di Hardhat
@@ -6,8 +6,11 @@ import EventFactoryABI from "../../../artifacts/contracts/EventFactory.sol/Event
 import TicketManagerABI from "../../../artifacts/contracts/TicketManager.sol/TicketManager.json";
 import PaymentManagerABI from "../../../artifacts/contracts/PaymentManager.sol/PaymentManager.json";
 
-// Inizializza il provider (connessione a MetaMask)
-const provider = new BrowserProvider(window.ethereum);
+// Usa MetaMask se disponibile, altrimenti usa Ganache RPC
+const provider = window.ethereum
+  ? new BrowserProvider(window.ethereum)  // MetaMask per transazioni
+  : new JsonRpcProvider("http://127.0.0.1:7545"); // Ganache
+console.log("🔍 Provider in uso:", provider);
 
 // Recuperiamo gli indirizzi dal file JSON
 const EVENT_FACTORY_ADDRESS = contractAddresses.EventFactory;

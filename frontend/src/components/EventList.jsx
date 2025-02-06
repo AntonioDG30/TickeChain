@@ -10,11 +10,22 @@ const EventList = ({ account }) => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        console.log("Esecuzione fetchEvents...");
+        console.log("📡 Connessione a MetaMask...");
+        
+        // Forza la connessione al wallet
+        await provider.send("eth_requestAccounts", []);
     
-        // Recupera il numero totale di eventi dal contratto
-        const totalEvents = await eventFactoryContract.getTotalEvents();
-        console.log("Totale eventi:", totalEvents.toString());
+        console.log("📡 Chiamata a getTotalEvents...");
+    
+        const signer = await provider.getSigner();  // Otteniamo il signer dall'utente
+        const totalEvents = await eventFactoryContract.connect(signer).getTotalEvents();
+    
+        console.log("🎟️ Numero di eventi totali:", totalEvents.toString());
+    
+        if (totalEvents.toString() === "0") {
+          console.warn("⚠️ Nessun evento trovato.");
+          return;
+        }
     
         let fetchedEvents = [];
         for (let i = 0; i < totalEvents; i++) {
@@ -29,12 +40,12 @@ const EventList = ({ account }) => {
         }
     
         setEvents(fetchedEvents);
-        console.log("Eventi disponibili:", fetchedEvents);
+        console.log("✅ Eventi recuperati:", fetchedEvents);
       } catch (error) {
-        console.error("Errore nel recupero eventi:", error);
+        console.error("❌ Errore nel recupero eventi:", error);
       }
-    };    
-  
+    };
+    
     fetchEvents();
   }, []);
   
