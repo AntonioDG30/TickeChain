@@ -17,31 +17,6 @@ const ManageEvents = ({ account }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchUserEvents = async () => {
-      try {
-        const signer = await provider.getSigner();
-        const userAddress = await signer.getAddress();
-
-        const totalEvents = await eventFactoryContract.getTotalEvents();
-        let userEvents = [];
-
-        for (let i = 0; i < totalEvents; i++) {
-          const event = await eventFactoryContract.events(i);
-          if (event.creator.toLowerCase() === userAddress.toLowerCase()) {
-            userEvents.push({ 
-              id: i, 
-              name: event.name, 
-              state: Number(event.state) 
-            });
-          }
-        }
-
-        setEvents(userEvents);
-      } catch (error) {
-        console.error("❌ Errore nel recupero eventi:", error);
-      }
-    };
-
     fetchUserEvents();
   }, [account]);
 
@@ -50,6 +25,31 @@ const ManageEvents = ({ account }) => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const fetchUserEvents = async () => {
+    try {
+      const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
+
+      const totalEvents = await eventFactoryContract.getTotalEvents();
+      let userEvents = [];
+
+      for (let i = 0; i < totalEvents; i++) {
+        const event = await eventFactoryContract.events(i);
+        if (event.creator.toLowerCase() === userAddress.toLowerCase()) {
+          userEvents.push({ 
+            id: i, 
+            name: event.name, 
+            state: Number(event.state) 
+          });
+        }
+      }
+
+      setEvents(userEvents);
+    } catch (error) {
+      console.error("❌ Errore nel recupero eventi:", error);
+    }
   };
 
   const handleCreateEvent = async () => {
@@ -103,20 +103,28 @@ const ManageEvents = ({ account }) => {
 
   const cancelEvent = async (eventId) => {
     try {
-      setMessage("");
+      console.log(`🚨 Tentativo di annullamento per evento ID: ${eventId}`);
+  
       const signer = await provider.getSigner();
       const eventFactoryWithSigner = eventFactoryContract.connect(signer);
-
+  
+      console.log("📡 Connessione al contratto EventFactory:", eventFactoryWithSigner);
+  
+      // Chiamata per annullare l'evento
       const tx = await eventFactoryWithSigner.cancelEvent(eventId);
       await tx.wait();
-
-      setMessage("✅ Evento annullato con successo!");
-      window.location.reload();
+  
+      console.log("✅ Evento annullato con successo!");
+      alert("✅ Evento annullato!");
+  
+      // ⚡ Aggiorna la lista degli eventi dopo l'annullamento
+      fetchUserEvents();
     } catch (error) {
       console.error("❌ Errore nell'annullamento dell'evento:", error);
-      setMessage("❌ Errore durante l'annullamento dell'evento.");
+      alert("❌ Impossibile annullare l'evento!");
     }
   };
+  
 
   return (
     <div className="mt-4">

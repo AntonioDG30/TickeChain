@@ -184,6 +184,15 @@ contract EventFactory is Pausable, Ownable {
         events[eventId].ticketsAvailable -= 1;
     }
 
+    function cancelEvent(uint256 _eventId) external whenNotPaused {
+        require(events[_eventId].creator == msg.sender, "Solo il creatore puo' annullare l'evento");
+        require(events[_eventId].state != EventState.CANCELLED, "L'evento e' gia' annullato");
+
+        events[_eventId].state = EventState.CANCELLED;
+        
+        emit EventStateChanged(_eventId, EventState.CANCELLED);
+    }
+
 
     /**
      * @dev Restituisce il numero totale di eventi creati.

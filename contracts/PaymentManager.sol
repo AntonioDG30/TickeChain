@@ -49,26 +49,16 @@ contract PaymentManager is Pausable, Ownable {
 
     /**
      * @dev Permette agli utenti di depositare fondi nel contratto.
-     * @param _amount Quantità di token da depositare.
      */
-    function depositFunds(uint256 _amount) external whenNotPaused {
-        // Verifica che l'importo sia maggiore di zero
-        require(_amount > 0, "L'importo deve essere maggiore di zero");
+    function depositFunds() external payable whenNotPaused {
+        require(msg.value > 0, "Devi depositare una somma positiva");
 
-        uint256 userBalance = balances[msg.sender]; // Ottiene il saldo dell'utente prima del deposito
+        // Aggiungiamo l'importo al saldo dell'utente
+        balances[msg.sender] += msg.value;
 
-        // Trasferisce i token dal chiamante al contratto
-        require(
-            paymentToken.transferFrom(msg.sender, address(this), _amount),
-            "Trasferimento dei token fallito"
-        );
-
-        // Aggiunge l'importo al saldo dell'utente
-        balances[msg.sender] = userBalance + _amount;
-
-        // Emmette un evento di deposito
-        emit FundsDeposited(msg.sender, _amount);
+        emit FundsDeposited(msg.sender, msg.value);
     }
+
 
     /**
      * @dev Permette agli utenti di ritirare i propri fondi.
@@ -100,7 +90,6 @@ contract PaymentManager is Pausable, Ownable {
      * @param eventId ID dell'evento associato al rimborso.
      */
     function processRefund(address _user, uint256 _amount, uint256 eventId) external onlyOwner whenNotPaused {
-        // Verifica che l'indirizzo dell'utente non sia nullo e che l'importo sia maggiore di zero
         require(_user != address(0), "Indirizzo utente non valido");
         require(_amount > 0, "L'importo deve essere maggiore di zero");
 
@@ -109,22 +98,14 @@ contract PaymentManager is Pausable, Ownable {
 
         // Verifica che il contratto abbia abbastanza fondi per il rimborso
         uint256 contractBalance = paymentToken.balanceOf(address(this));
-        if (contractBalance < _amount) {
-            revert("Fondi del contratto insufficienti");
-        }
-
-        // Aggiorna il saldo dell'utente prima di trasferire i fondi
-        balances[_user] += _amount;
+        require(contractBalance >= _amount, "Fondi del contratto insufficienti");
 
         // Trasferisce i fondi all'utente
-        require(
-            paymentToken.transfer(_user, _amount),
-            "Trasferimento dei token fallito"
-        );
+        require(paymentToken.transfer(_user, _amount), "Trasferimento dei token fallito");
 
-        // Emmette un evento di rimborso
         emit RefundProcessed(_user, _amount);
     }
+
 
     /**
      * @dev Restituisce il saldo di un utente.

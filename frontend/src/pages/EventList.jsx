@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button, Card, Spinner } from "react-bootstrap";
 import { ethers } from "ethers";
-import { eventFactoryContract, ticketManagerContract, provider } from "../utils/contracts";
+import { eventFactoryContract, ticketManagerContract, paymentManagerContract, provider } from "../utils/contracts";
 
 const EventList = ({ account }) => {
   const [events, setEvents] = useState([]);
@@ -42,34 +42,32 @@ const EventList = ({ account }) => {
     fetchEvents();
   }, [account]);
 
-  const buyTicket = async (eventId) => {
+  const buyTicket = async (eventId, price) => {
     console.log(`🛒 Tentativo di acquisto biglietto per evento ID: ${eventId}`);
 
     try {
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
+      const paymentManagerWithSigner = paymentManagerContract.connect(signer);
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
 
-      console.log("📡 Connessione al contratto TicketManager:", ticketManagerWithSigner);
-      console.log("👛 Indirizzo utente:", userAddress);
+      console.log("📡 Connessione al contratto PaymentManager:", paymentManagerWithSigner);
 
-      // Controlliamo lo stato dell'evento
-      const event = await eventFactoryContract.events(eventId);
-      console.log("📅 Stato dell'evento:", event.state.toString());
+      // ⚡ Prima di tutto, deposita i fondi su PaymentManager.sol
+      console.log(`💰 Deposito di ${price} ETH in PaymentManager.sol`);
+      const depositTx = await paymentManagerWithSigner.depositFunds({ value: ethers.parseEther(price.toString()) });
+      await depositTx.wait();
+      console.log("✅ Deposito completato!");
 
-      if (event.state.toString() !== "1") { // 1 = OPEN
-        alert("❌ L'evento non è aperto per l'acquisto!");
-        return;
-      }
-
-      // Acquisto del biglietto
+      // ⚡ Ora acquista il biglietto
+      console.log("🎟️ Acquisto del biglietto...");
       const tx = await ticketManagerWithSigner.mintTicket(userAddress, "https://example.com/ticket", eventId);
       await tx.wait();
 
       console.log("✅ Acquisto completato!");
       alert("✅ Biglietto acquistato con successo!");
 
-      // ⚡ Dopo l'acquisto, aggiorniamo automaticamente la lista eventi
+      // ⚡ Dopo l'acquisto, aggiorniamo la lista eventi con i dati più recenti dalla blockchain
       fetchEvents();
     } catch (error) {
       console.error("❌ Errore durante l'acquisto:", error);
@@ -90,7 +88,7 @@ const EventList = ({ account }) => {
                 <Card.Text>📍 {event.location}</Card.Text>
                 <Card.Text>💰 {event.price} ETH</Card.Text>
                 <Card.Text>🎟️ {event.ticketsAvailable} disponibili</Card.Text>
-                <Button onClick={() => buyTicket(event.id)} disabled={loading}>
+                <Button onClick={() => buyTicket(event.id, event.price)} disabled={loading}>
                     🛒 Acquista Biglietto
                 </Button>
               </Card.Body>
