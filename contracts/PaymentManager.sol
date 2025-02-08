@@ -31,6 +31,7 @@ contract PaymentManager is Pausable, Ownable {
     event FundsDeposited(address indexed user, uint256 amount);
     event FundsWithdrawn(address indexed user, uint256 amount);
     event RefundProcessed(address indexed user, uint256 amount);
+    event RefundAttempt(address indexed user, uint256 amount, uint256 contractBalance);
 
     /**
      * @dev Costruttore del contratto.
@@ -83,26 +84,21 @@ contract PaymentManager is Pausable, Ownable {
     }
 
     /**
-     * @dev Processa un rimborso a un utente specifico.
-     * Solo il proprietario del contratto può eseguire questa funzione.
-     * @param _user Indirizzo dell'utente da rimborsare.
-     * @param _amount Quantità di token da rimborsare.
-     * @param eventId ID dell'evento associato al rimborso.
+     * @dev This contract manages payments within the TickeChain system.
+     * 
+     * Note: The parameter "eventId" is mentioned in the documentation but is not found in the parameter list of the function.
      */
-    function processRefund(address _user, uint256 _amount, uint256 eventId) external onlyOwner whenNotPaused {
+    function processRefund(address _user, uint256 _amount) external onlyOwner whenNotPaused {
         require(_user != address(0), "Indirizzo utente non valido");
         require(_amount > 0, "L'importo deve essere maggiore di zero");
 
-        // Verifica se l'evento è stato annullato
-        require(eventFactory.isEventCancelled(eventId), "L'evento non e' stato annullato");
-
-        // Verifica che il contratto abbia abbastanza fondi per il rimborso
-        uint256 contractBalance = paymentToken.balanceOf(address(this));
+        uint256 contractBalance = address(this).balance;
         require(contractBalance >= _amount, "Fondi del contratto insufficienti");
 
-        // Trasferisce i fondi all'utente
-        require(paymentToken.transfer(_user, _amount), "Trasferimento dei token fallito");
+        // ✅ Usiamo un evento per il debug invece di console.log
+        emit RefundAttempt(_user, _amount, contractBalance);
 
+        payable(_user).transfer(_amount);
         emit RefundProcessed(_user, _amount);
     }
 

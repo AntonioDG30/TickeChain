@@ -36,18 +36,28 @@ const MyTickets = ({ account }) => {
     fetchUserTickets();
   }, [account]);
 
-  const refundTicket = async (ticketId, eventId, price) => {
+  const refundTicket = async (ticketId) => {
     console.log(`🔄 Tentativo di rimborso per il biglietto ID: ${ticketId}`);
   
     try {
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
-      const paymentManagerWithSigner = paymentManagerContract.connect(signer);
+      const ticketManagerWithSigner = ticketManagerContract.connect(signer);
       const eventFactoryWithSigner = eventFactoryContract.connect(signer);
+      const paymentManagerWithSigner = paymentManagerContract.connect(signer);
   
-      console.log("📡 Connessione al contratto PaymentManager:", paymentManagerWithSigner);
+      console.log("📡 Connessione al contratto TicketManager:", ticketManagerWithSigner);
   
-      // ⚡ Verifica nel frontend se l'evento è annullato prima di eseguire il rimborso
+      // ⚡ Recuperiamo l'eventId dal biglietto
+      const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
+      console.log("🎟️ Evento associato al biglietto:", eventId.toString());
+  
+      // ⚡ Recuperiamo il prezzo dell'evento da EventFactory.sol
+      const eventDetails = await eventFactoryWithSigner.events(eventId);
+      const price = ethers.parseEther(eventDetails.price.toString()); // ✅ Convertiamo il prezzo in wei
+      console.log("💰 Prezzo del biglietto:", ethers.formatEther(price), "ETH");
+  
+      // ⚡ Verifica se l'evento è annullato
       const isCancelled = await eventFactoryWithSigner.isEventCancelled(eventId);
       console.log("🛑 Stato dell'evento annullato:", isCancelled);
   
@@ -56,40 +66,29 @@ const MyTickets = ({ account }) => {
         return;
       }
   
-      // ⚡ Verifica il saldo disponibile nel contratto PaymentManager (in ETH)
-      const contractBalance = await provider.getBalance(paymentManagerContract.target);
-      console.log("💰 Bilancio contratto PaymentManager (ETH):", ethers.formatEther(contractBalance));
-  
-      if (contractBalance < ethers.parseEther(price.toString())) {
-        alert("❌ Il contratto non ha fondi sufficienti per il rimborso.");
-        return;
-      }
-  
-      // Chiamata al contratto per il rimborso
-      const refundTx = await paymentManagerWithSigner.processRefund(
-        userAddress,
-        ethers.parseEther(price.toString()),
-        eventId
-      );
+      // ⚡ Procediamo con il rimborso su PaymentManager.sol
+      console.log("💰 Tentativo di rimborso...");
+      const refundTx = await paymentManagerWithSigner.processRefund(userAddress, price);
       await refundTx.wait();
   
       console.log("✅ Rimborso completato!");
       alert("✅ Rimborso effettuato con successo!");
   
-      // ⚡ Brucia il biglietto dopo il rimborso
-      const burnTx = await ticketManagerContract.connect(signer).refundTicket(ticketId);
+      // ⚡ Dopo il rimborso, bruciamo il biglietto
+      const burnTx = await ticketManagerWithSigner.refundTicket(ticketId);
       await burnTx.wait();
   
       console.log("🔥 Biglietto bruciato!");
       alert("🔥 Biglietto eliminato dal tuo portafoglio!");
   
-      // ⚡ Aggiorniamo la lista dei biglietti
+      // Aggiorniamo la lista dei biglietti
       setTickets((prevTickets) => prevTickets.filter((t) => t.id !== ticketId.toString()));
     } catch (error) {
       console.error("❌ Errore durante il rimborso:", error);
       alert("❌ Rimborso fallito!");
     }
   };
+    
   
 
   return (
@@ -103,8 +102,8 @@ const MyTickets = ({ account }) => {
                 <Card.Body>
                   <Card.Title>🎟️ Biglietto #{ticket.id}</Card.Title>
                   <Card.Text>🔗 <a href={ticket.uri} target="_blank" rel="noopener noreferrer">Vedi metadati</a></Card.Text>
-                  <Button variant="danger" onClick={() => refundTicket(ticket.id, 1, 0.1)}>
-                    🔄 Rimborsa
+                  <Button onClick={() => refundTicket(ticket.id)}>
+                      🔄 Richiedi Rimborso
                   </Button>
                 </Card.Body>
               </Card>

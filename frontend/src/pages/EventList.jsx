@@ -44,36 +44,36 @@ const EventList = ({ account }) => {
 
   const buyTicket = async (eventId, price) => {
     console.log(`🛒 Tentativo di acquisto biglietto per evento ID: ${eventId}`);
-
+  
     try {
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
       const paymentManagerWithSigner = paymentManagerContract.connect(signer);
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
-
+  
       console.log("📡 Connessione al contratto PaymentManager:", paymentManagerWithSigner);
-
+  
       // ⚡ Prima di tutto, deposita i fondi su PaymentManager.sol
       console.log(`💰 Deposito di ${price} ETH in PaymentManager.sol`);
       const depositTx = await paymentManagerWithSigner.depositFunds({ value: ethers.parseEther(price.toString()) });
       await depositTx.wait();
       console.log("✅ Deposito completato!");
-
+  
       // ⚡ Ora acquista il biglietto
       console.log("🎟️ Acquisto del biglietto...");
       const tx = await ticketManagerWithSigner.mintTicket(userAddress, "https://example.com/ticket", eventId);
       await tx.wait();
-
+  
       console.log("✅ Acquisto completato!");
       alert("✅ Biglietto acquistato con successo!");
-
-      // ⚡ Dopo l'acquisto, aggiorniamo la lista eventi con i dati più recenti dalla blockchain
+  
       fetchEvents();
     } catch (error) {
       console.error("❌ Errore durante l'acquisto:", error);
       alert("❌ Acquisto fallito!");
     }
   };
+  
 
   return (
     <div className="mt-4">

@@ -25,7 +25,7 @@ async function main() {
 
   // Deploy TicketManager
   const TicketManager = await hre.ethers.getContractFactory("TicketManager");
-  const ticketManager = await TicketManager.deploy("TickeChain NFT", "TCK", eventFactory.target);
+  const ticketManager = await TicketManager.deploy();
   await ticketManager.waitForDeployment();
   console.log("TicketManager deployed to:", ticketManager.target);
 
