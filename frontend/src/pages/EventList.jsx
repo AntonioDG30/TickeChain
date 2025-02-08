@@ -53,13 +53,13 @@ const EventList = ({ account }) => {
   
       console.log("📡 Connessione al contratto PaymentManager:", paymentManagerWithSigner);
   
-      // ⚡ Prima di tutto, deposita i fondi su PaymentManager.sol
+      // ⚡ Deposita i fondi su PaymentManager.sol
       console.log(`💰 Deposito di ${price} ETH in PaymentManager.sol`);
       const depositTx = await paymentManagerWithSigner.depositFunds({ value: ethers.parseEther(price.toString()) });
       await depositTx.wait();
       console.log("✅ Deposito completato!");
   
-      // ⚡ Ora acquista il biglietto
+      // ⚡ Ora acquista il biglietto SENZA inviare ETH
       console.log("🎟️ Acquisto del biglietto...");
       const tx = await ticketManagerWithSigner.mintTicket(userAddress, "https://example.com/ticket", eventId);
       await tx.wait();
@@ -73,7 +73,6 @@ const EventList = ({ account }) => {
       alert("❌ Acquisto fallito!");
     }
   };
-  
 
   return (
     <div className="mt-4">

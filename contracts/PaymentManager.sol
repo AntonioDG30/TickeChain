@@ -95,7 +95,7 @@ contract PaymentManager is Pausable, Ownable {
         uint256 contractBalance = address(this).balance;
         require(contractBalance >= _amount, "Fondi del contratto insufficienti");
 
-        // ✅ Usiamo un evento per il debug invece di console.log
+        // ✅ Evento per il debugging invece di `console.log`
         emit RefundAttempt(_user, _amount, contractBalance);
 
         payable(_user).transfer(_amount);

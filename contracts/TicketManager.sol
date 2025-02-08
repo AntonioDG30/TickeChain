@@ -41,6 +41,15 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
         emit TicketMinted(ticketId, _to, _uri, eventId);
     }
 
+    // 🔴 **Blocca ogni tentativo di ricezione ETH direttamente su TicketManager.sol**
+    receive() external payable {
+        revert("TicketManager non accetta pagamenti diretti");
+    }
+
+    fallback() external payable {
+        revert("TicketManager non accetta pagamenti diretti");
+    }
+
     function refundTicket(uint256 _ticketId) external whenNotPaused {
         require(ownerOf(_ticketId) == msg.sender, "Solo il proprietario puo' rimborsare il biglietto");
         require(!refundedTickets[_ticketId], "Il biglietto e' gia' stato rimborsato");

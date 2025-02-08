@@ -35,7 +35,7 @@ const MyTickets = ({ account }) => {
 
     fetchUserTickets();
   }, [account]);
-
+  
   const refundTicket = async (ticketId) => {
     console.log(`🔄 Tentativo di rimborso per il biglietto ID: ${ticketId}`);
   
@@ -54,8 +54,13 @@ const MyTickets = ({ account }) => {
   
       // ⚡ Recuperiamo il prezzo dell'evento da EventFactory.sol
       const eventDetails = await eventFactoryWithSigner.events(eventId);
-      const price = ethers.parseEther(eventDetails.price.toString()); // ✅ Convertiamo il prezzo in wei
-      console.log("💰 Prezzo del biglietto:", ethers.formatEther(price), "ETH");
+      const rawPrice = eventDetails.price.toString();
+      console.log("💰 Prezzo grezzo (dal contratto) in wei:", rawPrice);
+  
+      // ✅ Correzione: Usiamo `ethers.parseUnits()` per convertire il valore
+      const price = ethers.parseUnits(rawPrice, "wei");
+      console.log("💰 Prezzo corretto in wei:", price.toString());
+      console.log("💰 Prezzo corretto in ETH:", ethers.formatEther(price));
   
       // ⚡ Verifica se l'evento è annullato
       const isCancelled = await eventFactoryWithSigner.isEventCancelled(eventId);
@@ -88,8 +93,7 @@ const MyTickets = ({ account }) => {
       alert("❌ Rimborso fallito!");
     }
   };
-    
-  
+     
 
   return (
     <div className="mt-4">
