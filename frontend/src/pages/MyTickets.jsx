@@ -38,61 +38,87 @@ const MyTickets = ({ account }) => {
   
   const refundTicket = async (ticketId) => {
     console.log(`🔄 Tentativo di rimborso per il biglietto ID: ${ticketId}`);
-  
+
     try {
-      const signer = await provider.getSigner();
-      const userAddress = await signer.getAddress();
-      const ticketManagerWithSigner = ticketManagerContract.connect(signer);
-      const eventFactoryWithSigner = eventFactoryContract.connect(signer);
-      const paymentManagerWithSigner = paymentManagerContract.connect(signer);
-  
-      console.log("📡 Connessione al contratto TicketManager:", ticketManagerWithSigner);
-  
-      // ⚡ Recuperiamo l'eventId dal biglietto
-      const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
-      console.log("🎟️ Evento associato al biglietto:", eventId.toString());
-  
-      // ⚡ Recuperiamo il prezzo dell'evento da EventFactory.sol
-      const eventDetails = await eventFactoryWithSigner.events(eventId);
-      const rawPrice = eventDetails.price.toString();
-      console.log("💰 Prezzo grezzo (dal contratto) in wei:", rawPrice);
-  
-      // ✅ Correzione: Usiamo `ethers.parseUnits()` per convertire il valore
-      const price = ethers.parseUnits(rawPrice, "wei");
-      console.log("💰 Prezzo corretto in wei:", price.toString());
-      console.log("💰 Prezzo corretto in ETH:", ethers.formatEther(price));
-  
-      // ⚡ Verifica se l'evento è annullato
-      const isCancelled = await eventFactoryWithSigner.isEventCancelled(eventId);
-      console.log("🛑 Stato dell'evento annullato:", isCancelled);
-  
-      if (!isCancelled) {
-        alert("❌ Questo evento non è stato annullato, il rimborso non è disponibile.");
-        return;
-      }
-  
-      // ⚡ Procediamo con il rimborso su PaymentManager.sol
-      console.log("💰 Tentativo di rimborso...");
-      const refundTx = await paymentManagerWithSigner.processRefund(userAddress, price);
-      await refundTx.wait();
-  
-      console.log("✅ Rimborso completato!");
-      alert("✅ Rimborso effettuato con successo!");
-  
-      // ⚡ Dopo il rimborso, bruciamo il biglietto
-      const burnTx = await ticketManagerWithSigner.refundTicket(ticketId);
-      await burnTx.wait();
-  
-      console.log("🔥 Biglietto bruciato!");
-      alert("🔥 Biglietto eliminato dal tuo portafoglio!");
-  
-      // Aggiorniamo la lista dei biglietti
-      setTickets((prevTickets) => prevTickets.filter((t) => t.id !== ticketId.toString()));
+        // ✅ Ottiene il signer dall'oggetto provider (MetaMask)
+        const signer = await provider.getSigner();
+
+        // ✅ Recupera l'indirizzo dell'utente connesso
+        const userAddress = await signer.getAddress();
+
+        // ✅ Crea istanze dei contratti con il signer per eseguire transazioni
+        const ticketManagerWithSigner = ticketManagerContract.connect(signer);
+        const eventFactoryWithSigner = eventFactoryContract.connect(signer);
+        const paymentManagerWithSigner = paymentManagerContract.connect(signer);
+
+        console.log("📡 Connessione al contratto TicketManager:", ticketManagerWithSigner);
+
+        // ✅ Recupera l'ID dell'evento associato al biglietto tramite TicketManager.sol
+        const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
+        console.log("🎟️ Evento associato al biglietto:", eventId.toString());
+
+        // ✅ Recupera i dettagli dell'evento dall'EventFactory, incluso il prezzo
+        const eventDetails = await eventFactoryWithSigner.events(eventId);
+        console.log("📋 Dettagli dell'evento:", {
+          eventId: eventId?.toString() || "N/A", // Usa "N/A" se undefined
+          name: eventDetails?.name || "N/A",
+          location: eventDetails?.location || "N/A",
+          date: eventDetails?.date ? new Date(Number(eventDetails.date) * 1000).toLocaleString() : "N/A",
+          priceWei: eventDetails?.price ? eventDetails.price.toString() : "N/A",
+          priceEth: eventDetails?.price ? ethers.formatEther(eventDetails.price) : "N/A",
+          ticketsAvailable: eventDetails?.ticketsAvailable ? eventDetails.ticketsAvailable.toString() : "N/A",
+          status: eventDetails?.status ? eventDetails.status.toString() : "N/A"
+        });
+      
+      
+      
+      
+
+        // ✅ Estrae il prezzo grezzo (in wei) dell'evento
+        const rawPrice = eventDetails.price.toString();
+        console.log("💰 Prezzo grezzo (dal contratto) in wei:", rawPrice);
+
+        // ✅ Converte il prezzo in un valore utilizzabile
+        const price = ethers.parseUnits(rawPrice, "wei");
+        console.log("💰 Prezzo corretto in wei:", price.toString());
+        console.log("💰 Prezzo corretto in ETH:", ethers.formatEther(price));
+
+        // ✅ Controlla se l'evento è stato annullato tramite EventFactory.sol
+        const isCancelled = await eventFactoryWithSigner.isEventCancelled(eventId);
+        console.log("🛑 Stato dell'evento annullato:", isCancelled);
+
+        // ✅ Se l'evento non è annullato, interrompe l'operazione e avvisa l'utente
+        if (!isCancelled) {
+            alert("❌ Questo evento non è stato annullato, il rimborso non è disponibile.");
+            return;
+        }
+
+        // ✅ Se l'evento è annullato, avvia il processo di rimborso tramite PaymentManager.sol
+        const refundTx = await paymentManagerWithSigner.processRefund(userAddress, price, { gasLimit: 300000 });
+      
+        // ✅ Attende la conferma della transazione di rimborso
+        await refundTx.wait();
+        console.log("✅ Rimborso completato!");
+        alert("✅ Rimborso effettuato con successo!");
+
+        // ✅ Dopo il rimborso, il biglietto viene "bruciato" (eliminato dall'utente)
+        const burnTx = await ticketManagerWithSigner.refundTicket(ticketId);
+        
+        // ✅ Attende la conferma della transazione di bruciatura del biglietto
+        await burnTx.wait();
+        console.log("🔥 Biglietto bruciato!");
+        alert("🔥 Biglietto eliminato dal tuo portafoglio!");
+
+        // ✅ Aggiorna la lista dei biglietti rimuovendo quello rimborsato
+        //setTickets((prevTickets) => prevTickets.filter((t) => t.id !== ticketId.toString()));
+
     } catch (error) {
-      console.error("❌ Errore durante il rimborso:", error);
-      alert("❌ Rimborso fallito!");
+        // ❌ Se qualcosa va storto, mostra un errore in console e un messaggio all'utente
+        console.error("❌ Errore durante il rimborso:", error);
+        alert("❌ Rimborso fallito!");
     }
-  };
+};
+
      
 
   return (
