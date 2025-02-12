@@ -50,29 +50,33 @@ const EventList = ({ account }) => {
       const userAddress = await signer.getAddress();
       const paymentManagerWithSigner = paymentManagerContract.connect(signer);
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
-  
+
       console.log("📡 Connessione al contratto PaymentManager:", paymentManagerWithSigner);
   
-      // ⚡ Deposita i fondi su PaymentManager.sol
+      // ⚡ Deposita ETH su PaymentManager.sol
       console.log(`💰 Deposito di ${price} ETH in PaymentManager.sol`);
       const depositTx = await paymentManagerWithSigner.depositFunds({ value: ethers.parseEther(price.toString()) });
       await depositTx.wait();
       console.log("✅ Deposito completato!");
-  
-      // ⚡ Ora acquista il biglietto SENZA inviare ETH
-      console.log("🎟️ Acquisto del biglietto...");
+
+      // ✅ Recupera il saldo del contratto per verificare che il pagamento sia andato a buon fine
+      const contractBalance = await provider.getBalance(paymentManagerContract.target);
+      console.log("💰 Nuovo saldo del contratto:", ethers.formatEther(contractBalance));
+
+      // ⚠️ Verifica se il TicketManager sta effettivamente ricevendo la richiesta di mint
+      console.log("🎟️ Acquisto del biglietto in corso...");
       const tx = await ticketManagerWithSigner.mintTicket(userAddress, "https://example.com/ticket", eventId);
       await tx.wait();
-  
-      console.log("✅ Acquisto completato!");
+      console.log("✅ Biglietto acquistato con successo!");
+
       alert("✅ Biglietto acquistato con successo!");
-  
-      fetchEvents();
+
     } catch (error) {
       console.error("❌ Errore durante l'acquisto:", error);
       alert("❌ Acquisto fallito!");
     }
   };
+
 
   return (
     <div className="mt-4">
