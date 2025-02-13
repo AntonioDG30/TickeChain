@@ -64,10 +64,12 @@ const ManageEvents = ({ account }) => {
       const tx = await eventFactoryWithSigner.createEvent(
         formData.name,
         formData.location,
+        formData.description, 
         timestamp,
         ethers.parseEther(formData.price),
         Number(formData.ticketsAvailable)
       );
+      
 
       await tx.wait();
       setMessage("✅ Evento creato con successo!");
@@ -157,6 +159,7 @@ const ManageEvents = ({ account }) => {
         </Modal.Header>
         <Modal.Body>
           <Form>
+            {/* Nome Evento */}
             <Form.Group>
               <Form.Label>Nome Evento</Form.Label>
               <Form.Control
@@ -165,8 +168,11 @@ const ManageEvents = ({ account }) => {
                 placeholder="Inserisci il nome"
                 value={formData.name}
                 onChange={handleChange}
+                required
               />
             </Form.Group>
+
+            {/* Luogo Evento */}
             <Form.Group>
               <Form.Label>Luogo</Form.Label>
               <Form.Control
@@ -175,17 +181,38 @@ const ManageEvents = ({ account }) => {
                 placeholder="Inserisci la location"
                 value={formData.location}
                 onChange={handleChange}
+                required
               />
             </Form.Group>
+
+            {/* Descrizione Evento */}
+            <Form.Group>
+              <Form.Label>Descrizione Evento</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="description"
+                placeholder="Inserisci una descrizione"
+                value={formData.description}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            {/* Data Evento (Deve essere nel futuro) */}
             <Form.Group>
               <Form.Label>Data</Form.Label>
               <Form.Control
                 type="date"
                 name="date"
                 value={formData.date}
+                min={new Date().toISOString().split("T")[0]} // Imposta il minimo a oggi
                 onChange={handleChange}
+                required
               />
             </Form.Group>
+
+            {/* Prezzo del Biglietto (>= 0) */}
             <Form.Group>
               <Form.Label>Prezzo del Biglietto (ETH)</Form.Label>
               <Form.Control
@@ -194,9 +221,13 @@ const ManageEvents = ({ account }) => {
                 name="price"
                 placeholder="0.1"
                 value={formData.price}
+                min="0" // Assicura che il prezzo sia >= 0
                 onChange={handleChange}
+                required
               />
             </Form.Group>
+
+            {/* Biglietti Disponibili (>= 1) */}
             <Form.Group>
               <Form.Label>Biglietti Disponibili</Form.Label>
               <Form.Control
@@ -204,7 +235,9 @@ const ManageEvents = ({ account }) => {
                 name="ticketsAvailable"
                 placeholder="100"
                 value={formData.ticketsAvailable}
+                min="1" // Assicura che i biglietti siano almeno 1
                 onChange={handleChange}
+                required
               />
             </Form.Group>
           </Form>

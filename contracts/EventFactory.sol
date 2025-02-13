@@ -19,14 +19,16 @@ contract EventFactory is Pausable, Ownable {
 
     // Struttura per memorizzare i dettagli di un evento
     struct Event {
-        string name;                // Nome dell'evento
-        string location;            // Luogo dell'evento
-        uint256 date;               // Data dell'evento (timestamp in secondi)
-        uint256 price;              // Prezzo di un biglietto per l'evento
-        uint256 ticketsAvailable;   // Numero di biglietti disponibili
-        address creator;            // Indirizzo del creatore dell'evento
-        EventState state;           // Stato attuale dell'evento (CREATO, APERTO, CHIUSO, ANNULLATO)
+        string name;
+        string location;
+        string description;  
+        uint256 date;
+        uint256 price;
+        uint256 ticketsAvailable;
+        address creator;
+        EventState state;
     }
+
 
     uint256 private eventIdCounter;          // Contatore per assegnare ID univoci agli eventi
     mapping(uint256 => Event) public events; // Mappatura che collega gli ID degli eventi ai dettagli dell'evento
@@ -88,26 +90,28 @@ contract EventFactory is Pausable, Ownable {
     function createEvent(
         string memory _name,
         string memory _location,
+        string memory _description,  // 🔹 Nuovo parametro
         uint256 _date,
         uint256 _price,
         uint256 _ticketsAvailable
-    ) external whenNotPaused { // Solo quando il contratto non è in pausa
-        require(_date > block.timestamp, "La data dell'evento deve essere nel futuro"); // Verifica che la data dell'evento sia nel futuro
-        require(_ticketsAvailable > 0, "Il numero di biglietti deve essere maggiore di zero"); // Verifica che siano disponibili biglietti
+    ) external whenNotPaused {
+        require(_date > block.timestamp, "La data dell'evento deve essere nel futuro");
+        require(_ticketsAvailable > 0, "Il numero di biglietti deve essere maggiore di zero");
 
-        uint256 eventId = eventIdCounter; // Ottiene l'ID dell'evento corrente
+        uint256 eventId = eventIdCounter;
         events[eventId] = Event({
             name: _name,
             location: _location,
+            description: _description,  // 🔹 Salviamo la descrizione
             date: _date,
             price: _price,
             ticketsAvailable: _ticketsAvailable,
-            creator: msg.sender, // L'indirizzo che crea l'evento è il creatore
-            state: EventState.CREATED // Inizialmente lo stato dell'evento è "CREATO"
+            creator: msg.sender,
+            state: EventState.CREATED
         });
 
-        eventIdCounter++; // Incrementa il contatore degli eventi
-        emit EventCreated(eventId, _name, msg.sender); // Emmette un evento che indica che l'evento è stato creato
+        eventIdCounter++;
+        emit EventCreated(eventId, _name, msg.sender);
     }
 
     /**

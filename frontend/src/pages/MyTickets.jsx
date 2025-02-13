@@ -69,6 +69,12 @@ const MyTickets = ({ account }) => {
       const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
       console.log("🎟️ Evento associato al biglietto:", eventId.toString());
 
+      const isCancelled = await eventFactoryWithSigner.isEventCancelled(eventId);
+      if (!isCancelled) {
+        setMessage({ type: "danger", text: "Questo evento non è stato annullato! Non puoi chiedere il rimborso dei biglietti." });
+        return;
+      }
+
       // ✅ Recupera il prezzo del biglietto dal contratto EventFactory
       const eventDetails = await eventFactoryWithSigner.events(eventId);
       if (!eventDetails) {
