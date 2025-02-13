@@ -31,6 +31,8 @@ contract EventFactory is Pausable, Ownable {
 
 
     uint256 private eventIdCounter;          // Contatore per assegnare ID univoci agli eventi
+    uint256 private cancelledEvents = 0;
+    uint256 private lastResetTime = block.timestamp;
     mapping(uint256 => Event) public events; // Mappatura che collega gli ID degli eventi ai dettagli dell'evento
 
     // Eventi per registrare le azioni di creazione, aggiornamento, eliminazione e cambio stato dell'evento
@@ -38,6 +40,7 @@ contract EventFactory is Pausable, Ownable {
     event EventUpdated(uint256 indexed eventId, string name);
     event EventDeleted(uint256 indexed eventId);
     event EventStateChanged(uint256 indexed eventId, EventState newState);
+    event EmergencyStopActivated(string message);
 
     /**
      * @dev Modificatore per garantire che solo il creatore dell'evento possa eseguire determinate azioni.
@@ -193,6 +196,21 @@ contract EventFactory is Pausable, Ownable {
         require(events[_eventId].state != EventState.CANCELLED, "L'evento e' gia' annullato");
 
         events[_eventId].state = EventState.CANCELLED;
+
+        // 🔹 Se è passata più di un'ora, resettiamo il conteggio
+        if (block.timestamp - lastResetTime > 1 hours) {
+            cancelledEvents = 0;
+            lastResetTime = block.timestamp;
+        }
+
+        // 🔹 Incrementiamo il contatore degli eventi annullati
+        cancelledEvents++;
+
+        // 🔹 Se più di 3 eventi vengono annullati in un'ora, attiviamo Emergency Stop
+        if (cancelledEvents >= 3) {
+            _pause();
+            emit EmergencyStopActivated("Emergency Stop attivato! Troppi eventi annullati.");
+        }
         
         emit EventStateChanged(_eventId, EventState.CANCELLED);
     }
@@ -204,6 +222,14 @@ contract EventFactory is Pausable, Ownable {
      */
     function getTotalEvents() external view returns (uint256) {
         return eventIdCounter;
+    }
+
+    function emergencyStop() external onlyOwner {
+        _pause(); // Blocca il contratto
+    }
+
+    function resumeOperations() external onlyOwner {
+        _unpause(); // Riattiva il contratto
     }
 
     /**

@@ -7,12 +7,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TicketManager is ERC721URIStorage, Pausable, Ownable {
     uint256 private ticketCounter;  // 🔹 Contatore progressivo per i biglietti
+    uint256 private failedMintAttempts = 0; // 🔹 Traccia il numero di errori di minting
+
     mapping(uint256 => uint256) public ticketToEventId;
     mapping(uint256 => bool) public refundedTickets;
     mapping(uint256 => bool) public activeTickets; // 🔹 Nuovo mapping per tenere solo i biglietti validi
 
     event TicketMinted(uint256 indexed ticketId, address indexed owner, string uri, uint256 eventId);
     event TicketRefunded(uint256 indexed ticketId, address indexed owner);
+    event EmergencyStopActivated(string message);
 
     constructor() ERC721("TickeChain NFT", "TKT") {
         ticketCounter = 1; // 🔹 Partiamo da 1 per evitare ID zero
@@ -23,12 +26,22 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
         require(bytes(_uri).length > 0, "URI non valido");
 
         uint256 ticketId = ticketCounter;
-        ticketCounter++; // 🔹 Incrementiamo subito il contatore
+        ticketCounter++; // 🔹 Incrementiamo il contatore subito
+
+        // 🔹 Se il mint fallisce, lo stato del contratto non viene alterato, ma aumentiamo il contatore
+        if (_exists(ticketId)) {
+            failedMintAttempts++;
+            if (failedMintAttempts >= 5) {
+                _pause();
+                emit EmergencyStopActivated("Emergency Stop attivato! Troppi errori di minting.");
+            }
+            return;
+        }
 
         _safeMint(_to, ticketId);
         _setTokenURI(ticketId, _uri);
         ticketToEventId[ticketId] = _eventId;
-        activeTickets[ticketId] = true; // 🔹 Segniamo il biglietto come attivo
+        activeTickets[ticketId] = true;
 
         emit TicketMinted(ticketId, _to, _uri, _eventId);
     }
@@ -50,6 +63,14 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
 
     function isTicketActive(uint256 _ticketId) external view returns (bool) {
         return activeTickets[_ticketId];
+    }
+
+    function emergencyStop() external onlyOwner {
+        _pause(); // Blocca il contratto
+    }
+
+    function resumeOperations() external onlyOwner {
+        _unpause(); // Riattiva il contratto
     }
 
     function pause() external onlyOwner {

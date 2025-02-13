@@ -3,6 +3,7 @@ import { Button, Form, Modal, Alert } from "react-bootstrap";
 import { ethers } from "ethers";
 import { eventFactoryContract, provider } from "../utils/contracts";
 
+
 const ManageEvents = ({ account }) => {
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -17,6 +18,7 @@ const ManageEvents = ({ account }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    checkEmergencyStatus();
     fetchUserEvents();
   }, [account]);
 
@@ -100,6 +102,13 @@ const ManageEvents = ({ account }) => {
     } catch (error) {
       console.error("❌ Errore nel cambio di stato:", error);
       setMessage("❌ Errore durante la modifica dello stato.");
+    }
+  };
+
+  const checkEmergencyStatus = async () => {
+    const isPaused = await eventFactoryContract.paused();
+    if (isPaused) {
+      alert("🛑 Il sistema è in modalità di emergenza! Attendi che venga risolto.");
     }
   };
 
