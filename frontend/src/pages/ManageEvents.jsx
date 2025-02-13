@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Button, Form, Modal, Alert } from "react-bootstrap";
 import { ethers } from "ethers";
 import { eventFactoryContract, provider } from "../utils/contracts";
-
+import { toast } from "react-toastify";
 
 const ManageEvents = ({ account }) => {
   const [events, setEvents] = useState([]);
@@ -10,6 +10,7 @@ const ManageEvents = ({ account }) => {
   const [formData, setFormData] = useState({
     name: "",
     location: "",
+    description: "",
     date: "",
     price: "",
     ticketsAvailable: "",
@@ -31,6 +32,7 @@ const ManageEvents = ({ account }) => {
 
   const fetchUserEvents = async () => {
     try {
+      toast.info("📡 Recupero eventi...");
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
 
@@ -49,8 +51,10 @@ const ManageEvents = ({ account }) => {
       }
 
       setEvents(userEvents);
+      toast.success("✅ Eventi aggiornati!");
     } catch (error) {
       console.error("❌ Errore nel recupero eventi:", error);
+      toast.error("❌ Errore nel recupero eventi!");
     }
   };
 
@@ -59,6 +63,7 @@ const ManageEvents = ({ account }) => {
     setMessage("");
 
     try {
+      toast.info("⌛ Creazione evento in corso...");
       const signer = await provider.getSigner();
       const eventFactoryWithSigner = eventFactoryContract.connect(signer);
 
@@ -66,23 +71,22 @@ const ManageEvents = ({ account }) => {
       const tx = await eventFactoryWithSigner.createEvent(
         formData.name,
         formData.location,
-        formData.description, 
+        formData.description,
         timestamp,
         ethers.parseEther(formData.price),
         Number(formData.ticketsAvailable)
       );
       
-
       await tx.wait();
-      setMessage("✅ Evento creato con successo!");
+      toast.success("✅ Evento creato con successo!");
       setShowModal(false);
-      setFormData({ name: "", location: "", date: "", price: "", ticketsAvailable: "" });
+      setFormData({ name: "", location: "", description: "", date: "", price: "", ticketsAvailable: "" });
 
-      window.location.reload(); // Ricarica la lista eventi
+      fetchUserEvents(); // Aggiorna la lista eventi senza ricaricare la pagina
 
     } catch (error) {
       console.error("❌ Errore nella creazione dell'evento:", error);
-      setMessage("❌ Errore durante la creazione dell'evento.");
+      toast.error("❌ Errore durante la creazione dell'evento.");
     }
 
     setLoading(false);
@@ -90,52 +94,46 @@ const ManageEvents = ({ account }) => {
 
   const changeEventState = async (eventId, newState) => {
     try {
-      setMessage("");
+      toast.info("⌛ Modifica dello stato evento...");
       const signer = await provider.getSigner();
       const eventFactoryWithSigner = eventFactoryContract.connect(signer);
 
       const tx = await eventFactoryWithSigner.changeEventState(eventId, newState);
       await tx.wait();
 
-      setMessage("✅ Stato evento aggiornato con successo!");
-      window.location.reload();
+      toast.success("✅ Stato evento aggiornato con successo!");
+      fetchUserEvents();
     } catch (error) {
       console.error("❌ Errore nel cambio di stato:", error);
-      setMessage("❌ Errore durante la modifica dello stato.");
+      toast.error("❌ Errore durante la modifica dello stato.");
     }
   };
 
   const checkEmergencyStatus = async () => {
     const isPaused = await eventFactoryContract.paused();
     if (isPaused) {
-      alert("🛑 Il sistema è in modalità di emergenza! Attendi che venga risolto.");
+      toast.warn("🛑 Il sistema è in modalità di emergenza!");
     }
   };
 
   const cancelEvent = async (eventId) => {
     try {
       console.log(`🚨 Tentativo di annullamento per evento ID: ${eventId}`);
-  
+      toast.info(`🚨 Tentativo di annullamento per evento #${eventId}`);
+
       const signer = await provider.getSigner();
       const eventFactoryWithSigner = eventFactoryContract.connect(signer);
-  
-      console.log("📡 Connessione al contratto EventFactory:", eventFactoryWithSigner);
-  
-      // Chiamata per annullare l'evento
+
       const tx = await eventFactoryWithSigner.cancelEvent(eventId);
       await tx.wait();
-  
-      console.log("✅ Evento annullato con successo!");
-      alert("✅ Evento annullato!");
-  
-      // ⚡ Aggiorna la lista degli eventi dopo l'annullamento
+
+      toast.success("✅ Evento annullato con successo!");
       fetchUserEvents();
     } catch (error) {
       console.error("❌ Errore nell'annullamento dell'evento:", error);
-      alert("❌ Impossibile annullare l'evento!");
+      toast.error("❌ Impossibile annullare l'evento!");
     }
   };
-  
 
   return (
     <div className="mt-4">
@@ -168,7 +166,6 @@ const ManageEvents = ({ account }) => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            {/* Nome Evento */}
             <Form.Group>
               <Form.Label>Nome Evento</Form.Label>
               <Form.Control
@@ -181,7 +178,6 @@ const ManageEvents = ({ account }) => {
               />
             </Form.Group>
 
-            {/* Luogo Evento */}
             <Form.Group>
               <Form.Label>Luogo</Form.Label>
               <Form.Control
@@ -194,7 +190,6 @@ const ManageEvents = ({ account }) => {
               />
             </Form.Group>
 
-            {/* Descrizione Evento */}
             <Form.Group>
               <Form.Label>Descrizione Evento</Form.Label>
               <Form.Control
@@ -208,20 +203,18 @@ const ManageEvents = ({ account }) => {
               />
             </Form.Group>
 
-            {/* Data Evento (Deve essere nel futuro) */}
             <Form.Group>
               <Form.Label>Data</Form.Label>
               <Form.Control
                 type="date"
                 name="date"
                 value={formData.date}
-                min={new Date().toISOString().split("T")[0]} // Imposta il minimo a oggi
+                min={new Date().toISOString().split("T")[0]}
                 onChange={handleChange}
                 required
               />
             </Form.Group>
 
-            {/* Prezzo del Biglietto (>= 0) */}
             <Form.Group>
               <Form.Label>Prezzo del Biglietto (ETH)</Form.Label>
               <Form.Control
@@ -230,13 +223,12 @@ const ManageEvents = ({ account }) => {
                 name="price"
                 placeholder="0.1"
                 value={formData.price}
-                min="0" // Assicura che il prezzo sia >= 0
+                min="0"
                 onChange={handleChange}
                 required
               />
             </Form.Group>
 
-            {/* Biglietti Disponibili (>= 1) */}
             <Form.Group>
               <Form.Label>Biglietti Disponibili</Form.Label>
               <Form.Control
@@ -244,7 +236,7 @@ const ManageEvents = ({ account }) => {
                 name="ticketsAvailable"
                 placeholder="100"
                 value={formData.ticketsAvailable}
-                min="1" // Assicura che i biglietti siano almeno 1
+                min="1"
                 onChange={handleChange}
                 required
               />
@@ -252,9 +244,7 @@ const ManageEvents = ({ account }) => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal}>
-            Chiudi
-          </Button>
+          <Button variant="secondary" onClick={handleCloseModal}>Chiudi</Button>
           <Button variant="primary" onClick={handleCreateEvent} disabled={loading}>
             {loading ? "Creazione in corso..." : "Crea Evento"}
           </Button>

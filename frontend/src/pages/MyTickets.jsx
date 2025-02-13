@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ticketManagerContract, paymentManagerContract, eventFactoryContract, provider } from "../utils/contracts";
 import { Card, Button, Spinner, Alert } from "react-bootstrap";
 import { ethers } from "ethers";
+import { toast } from "react-toastify";
 
 const MyTickets = ({ account }) => {
   const [tickets, setTickets] = useState([]);
@@ -12,6 +13,7 @@ const MyTickets = ({ account }) => {
     const fetchUserTickets = async () => {
       try {
         setLoading(true);
+        toast.info("📡 Recupero biglietti NFT in corso...");
         console.log("📡 Recupero biglietti NFT posseduti dall'utente...");
         const signer = await provider.getSigner();
         const userAddress = await signer.getAddress();
@@ -39,20 +41,22 @@ const MyTickets = ({ account }) => {
     
         setTickets(userTickets);
         console.log("✅ Biglietti attivi recuperati:", userTickets);
+        toast.success("✅ Biglietti aggiornati!");
       } catch (error) {
         console.error("❌ Errore nel recupero dei biglietti:", error);
+        toast.error("❌ Errore nel recupero dei biglietti!");
         setMessage({ type: "danger", text: "Errore nel recupero dei biglietti." });
       } finally {
         setLoading(false);
       }
     };
        
-        
     fetchUserTickets();
   }, [account]);
 
   const refundTicket = async (ticketId) => {
     console.log(`🔄 Tentativo di rimborso per il biglietto ID: ${ticketId}`);
+    toast.info(`🔄 Tentativo di rimborso per il biglietto #${ticketId}`);
     setLoading(true);
     setMessage(null);
 
@@ -72,6 +76,7 @@ const MyTickets = ({ account }) => {
       const isCancelled = await eventFactoryWithSigner.isEventCancelled(eventId);
       if (!isCancelled) {
         setMessage({ type: "danger", text: "Questo evento non è stato annullato! Non puoi chiedere il rimborso dei biglietti." });
+        toast.warn("❌ Questo evento non è stato annullato! Impossibile rimborsare.");
         return;
       }
 
@@ -80,6 +85,7 @@ const MyTickets = ({ account }) => {
       if (!eventDetails) {
           console.error("❌ Errore: Dettagli dell'evento non trovati!");
           setMessage({ type: "danger", text: "Errore nel recupero dei dettagli dell'evento!" });
+          toast.error("❌ Errore nel recupero dei dettagli dell'evento!");
           return;
       }
 
@@ -87,10 +93,12 @@ const MyTickets = ({ account }) => {
       if (!refundAmount) {
           console.error("❌ Importo di rimborso non valido!");
           setMessage({ type: "danger", text: "Errore nel calcolo del rimborso!" });
+          toast.error("❌ Errore nel calcolo del rimborso!");
           return;
       }
 
       console.log(`💰 Importo del rimborso: ${refundAmount} ETH`);
+      toast.info(`💰 Rimborso di ${refundAmount} ETH in corso...`);
 
       // ✅ Controlliamo se il contratto ha abbastanza fondi PRIMA di eseguire il rimborso
       const contractBalance = await provider.getBalance(paymentManagerContract.target);
@@ -99,6 +107,7 @@ const MyTickets = ({ account }) => {
       if (BigInt(ethers.parseEther(refundAmount)) > BigInt(contractBalance)) {
         console.error("❌ Il contratto non ha abbastanza fondi per il rimborso!");
         setMessage({ type: "danger", text: "Il contratto non ha abbastanza ETH per il rimborso." });
+        toast.error("❌ Il contratto non ha abbastanza fondi per il rimborso!");
         return;
       }
 
@@ -111,18 +120,14 @@ const MyTickets = ({ account }) => {
       );
       await refundTx.wait();
       console.log("✅ Rimborso completato!");
-
-      // ✅ Controlla il saldo dell'utente dopo il rimborso
-      const finalBalance = await provider.getBalance(userAddress);
-      console.log("💰 Saldo finale dell'utente:", ethers.formatEther(finalBalance));
-
-      setMessage({ type: "success", text: "Rimborso effettuato con successo!" });
+      toast.success("✅ Rimborso completato!");
 
       // ✅ Dopo il rimborso, il biglietto viene eliminato
       console.log("🔥 Bruciatura del biglietto in corso...");
       const burnTx = await ticketManagerWithSigner.refundTicket(ticketId);
       await burnTx.wait();
       console.log("🔥 Biglietto bruciato!");
+      toast.info("🔥 Biglietto eliminato dopo rimborso.");
 
       // ✅ Aggiorna la lista dei biglietti
       setTickets((prevTickets) => prevTickets.filter((t) => t.id !== ticketId.toString()));
@@ -130,6 +135,7 @@ const MyTickets = ({ account }) => {
     } catch (error) {
       console.error("❌ Errore durante il rimborso:", error);
       setMessage({ type: "danger", text: "Rimborso fallito!" });
+      toast.error("❌ Rimborso fallito!");
     } finally {
       setLoading(false);
     }
