@@ -15,25 +15,30 @@ const MyTickets = ({ account }) => {
         console.log("📡 Recupero biglietti NFT posseduti dall'utente...");
         const signer = await provider.getSigner();
         const userAddress = await signer.getAddress();
-        const totalTickets = await ticketManagerContract.balanceOf(userAddress);
+        const maxTicketId = await ticketManagerContract.getTotalMintedTickets(); // Otteniamo il massimo ID generato
+    
         let userTickets = [];
-
-        for (let i = 0; i < totalTickets; i++) {
+    
+        for (let i = 1; i <= maxTicketId; i++) {
           try {
-            const ticketId = i; // Iteriamo sugli ID
-            const owner = await ticketManagerContract.ownerOf(ticketId);
-
+            const isActive = await ticketManagerContract.isTicketActive(i);
+            if (!isActive) {
+              console.warn(`⚠️ Il biglietto con ID ${i} è stato rimborsato o bruciato.`);
+              continue;
+            }
+    
+            const owner = await ticketManagerContract.ownerOf(i);
             if (owner.toLowerCase() === userAddress.toLowerCase()) {
-              const tokenURI = await ticketManagerContract.tokenURI(ticketId);
-              userTickets.push({ id: ticketId.toString(), uri: tokenURI });
+              const tokenURI = await ticketManagerContract.tokenURI(i);
+              userTickets.push({ id: i.toString(), uri: tokenURI });
             }
           } catch (error) {
-            console.warn(`⚠️ Il biglietto con ID ${i} non esiste o è stato bruciato.`);
+            console.warn(`⚠️ Il biglietto con ID ${i} non esiste.`);
           }
         }
-
+    
         setTickets(userTickets);
-        console.log("✅ Biglietti recuperati:", userTickets);
+        console.log("✅ Biglietti attivi recuperati:", userTickets);
       } catch (error) {
         console.error("❌ Errore nel recupero dei biglietti:", error);
         setMessage({ type: "danger", text: "Errore nel recupero dei biglietti." });
@@ -41,7 +46,8 @@ const MyTickets = ({ account }) => {
         setLoading(false);
       }
     };
-
+       
+        
     fetchUserTickets();
   }, [account]);
 

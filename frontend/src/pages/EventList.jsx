@@ -43,39 +43,64 @@ const EventList = ({ account }) => {
   }, [account]);
 
   const buyTicket = async (eventId, price) => {
-    console.log(`🛒 Tentativo di acquisto biglietto per evento ID: ${eventId}`);
-  
+    console.log(`🛒 Acquisto biglietto per evento ID: ${eventId}`);
+    
     try {
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
       const paymentManagerWithSigner = paymentManagerContract.connect(signer);
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
-
-      console.log("📡 Connessione al contratto PaymentManager:", paymentManagerWithSigner);
   
-      // ⚡ Deposita ETH su PaymentManager.sol
-      console.log(`💰 Deposito di ${price} ETH in PaymentManager.sol`);
-      const depositTx = await paymentManagerWithSigner.depositFunds({ value: ethers.parseEther(price.toString()) });
+      console.log("📡 Connessione a PaymentManager.sol");
+  
+      // 🔹 Controllo se il contratto è in pausa
+      const isPaused = await ticketManagerWithSigner.paused();
+      console.log("⏸️ Stato contratto:", isPaused);
+      if (isPaused) {
+        throw new Error("⏸️ Il contratto è in pausa! Impossibile procedere.");
+      }
+  
+      // 🔹 Controlliamo se il wallet connesso è l'owner
+      const contractOwner = await ticketManagerWithSigner.owner();
+      console.log("👑 Owner del contratto:", contractOwner);
+      console.log("🔑 Account connesso:", userAddress);
+  
+      if (contractOwner.toLowerCase() !== userAddress.toLowerCase()) {
+        console.warn("⚠️ Attenzione! Il wallet connesso NON è l'owner del contratto.");
+      }
+  
+      // 🔹 Deposito ETH su PaymentManager.sol
+      console.log(`💰 Deposito di ${price} ETH`);
+      const depositTx = await paymentManagerWithSigner.depositFunds({
+        value: ethers.parseEther(price.toString()),
+        gasLimit: 300000, // Impostiamo un gasLimit più alto
+      });
       await depositTx.wait();
       console.log("✅ Deposito completato!");
-
-      // ✅ Recupera il saldo del contratto per verificare che il pagamento sia andato a buon fine
+  
+      // 🔹 Controlliamo il saldo del contratto
       const contractBalance = await provider.getBalance(paymentManagerContract.target);
-      console.log("💰 Nuovo saldo del contratto:", ethers.formatEther(contractBalance));
-
-      // ⚠️ Verifica se il TicketManager sta effettivamente ricevendo la richiesta di mint
-      console.log("🎟️ Acquisto del biglietto in corso...");
-      const tx = await ticketManagerWithSigner.mintTicket(userAddress, "https://example.com/ticket", eventId);
+      console.log("💰 Saldo contratto dopo deposito:", ethers.formatEther(contractBalance));
+  
+      // 🔹 Mint del biglietto
+      console.log("🎟️ Avvio minting del biglietto...");
+      const tx = await ticketManagerWithSigner.mintTicket(
+        userAddress, 
+        "https://example.com/ticket", 
+        eventId,
+        { gasLimit: 500000 } // 🔹 Forziamo il gas limit
+      );
       await tx.wait();
       console.log("✅ Biglietto acquistato con successo!");
-
+  
       alert("✅ Biglietto acquistato con successo!");
-
     } catch (error) {
       console.error("❌ Errore durante l'acquisto:", error);
-      alert("❌ Acquisto fallito!");
+      alert(`❌ Acquisto fallito! ${error.message}`);
     }
   };
+  
+  
 
 
   return (
