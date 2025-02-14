@@ -3,6 +3,7 @@ import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import EventList from "./EventList";
 import ManageEvents from "./ManageEvents";
 import MyTickets from "./MyTickets";
+import EventVerification from "./EventVerification";
 import { Button } from "react-bootstrap";
 
 const Dashboard = ({ account, disconnectWallet }) => {
@@ -16,6 +17,7 @@ const Dashboard = ({ account, disconnectWallet }) => {
           <Link className="nav-link" to="/">🎟️ Eventi Disponibili</Link>
           <Link className="nav-link" to="/manage-events">⚙️ Gestisci Eventi</Link>
           <Link className="nav-link" to="/my-tickets">🎫 Biglietti Personali</Link>
+          <Link className="nav-link" to="/event-verification">🎫 Verifica Eventi</Link>
         </nav>
         <Button variant="danger" onClick={() => { disconnectWallet(); navigate("/login"); }}>
           ❌ Disconnetti
@@ -25,6 +27,7 @@ const Dashboard = ({ account, disconnectWallet }) => {
         <Route path="/" element={<EventList account={account} />} />
         <Route path="/manage-events" element={<ManageEvents account={account} />} />
         <Route path="/my-tickets" element={<MyTickets account={account} />} />
+        <Route path="/event-verification" element={<EventVerification account={account} />} />
       </Routes>
     </div>
   );

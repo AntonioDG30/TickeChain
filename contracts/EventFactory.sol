@@ -215,6 +215,20 @@ contract EventFactory is Pausable, Ownable {
         emit EventStateChanged(_eventId, EventState.CANCELLED);
     }
 
+    function getEventDetails(uint256 _eventId) external view returns (string memory, string memory, uint256, uint256, address, EventState) {
+        require(_eventId < eventIdCounter, "Evento non esistente");
+        Event storage eventInfo = events[_eventId];
+
+        return (
+            eventInfo.name,
+            eventInfo.location,
+            eventInfo.date,
+            eventInfo.price,
+            eventInfo.creator,
+            eventInfo.state
+        );
+    }
+
 
     /**
      * @dev Restituisce il numero totale di eventi creati.

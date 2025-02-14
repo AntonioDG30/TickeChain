@@ -1,13 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { ticketManagerContract, paymentManagerContract, eventFactoryContract, provider } from "../utils/contracts";
 import { Card, Button, Spinner, Alert } from "react-bootstrap";
 import { ethers } from "ethers";
 import { toast } from "react-toastify";
+import QRCode from "react-qr-code";
+import html2canvas from "html2canvas";
 
 const MyTickets = ({ account }) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [qrData, setQrData] = useState(null);
+  const qrRef = useRef(null); // 🔹 Riferimento al QR Code per lo screenshot
 
   useEffect(() => {
     const fetchUserTickets = async () => {
@@ -17,10 +21,10 @@ const MyTickets = ({ account }) => {
         console.log("📡 Recupero biglietti NFT posseduti dall'utente...");
         const signer = await provider.getSigner();
         const userAddress = await signer.getAddress();
-        const maxTicketId = await ticketManagerContract.getTotalMintedTickets(); // Otteniamo il massimo ID generato
-    
+        const maxTicketId = await ticketManagerContract.getTotalMintedTickets();
+
         let userTickets = [];
-    
+
         for (let i = 1; i <= maxTicketId; i++) {
           try {
             const isActive = await ticketManagerContract.isTicketActive(i);
@@ -28,7 +32,7 @@ const MyTickets = ({ account }) => {
               console.warn(`⚠️ Il biglietto con ID ${i} è stato rimborsato o bruciato.`);
               continue;
             }
-    
+
             const owner = await ticketManagerContract.ownerOf(i);
             if (owner.toLowerCase() === userAddress.toLowerCase()) {
               const tokenURI = await ticketManagerContract.tokenURI(i);
@@ -38,7 +42,7 @@ const MyTickets = ({ account }) => {
             console.warn(`⚠️ Il biglietto con ID ${i} non esiste.`);
           }
         }
-    
+
         setTickets(userTickets);
         console.log("✅ Biglietti attivi recuperati:", userTickets);
         toast.success("✅ Biglietti aggiornati!");
@@ -50,10 +54,44 @@ const MyTickets = ({ account }) => {
         setLoading(false);
       }
     };
-       
+
     fetchUserTickets();
   }, [account]);
 
+  // 🔹 Funzione per generare la firma e creare un QR Code
+  const signTicketValidation = async (ticketId) => {
+    try {
+      toast.info(`🔍 Generazione della firma per il biglietto #${ticketId}...`);
+
+      const signer = await provider.getSigner();
+      const message = `Sto validando il mio biglietto #${ticketId}`;
+      const signature = await signer.signMessage(message);
+
+      const signedData = JSON.stringify({ ticketId, message, signature });
+
+      setQrData(signedData);
+      toast.success("✅ Firma generata con successo! Scansiona il QR Code per verificare.");
+    } catch (error) {
+      console.error("❌ Errore durante la firma:", error);
+      toast.error("❌ Errore durante la firma del biglietto!");
+    }
+  };
+
+  // 🔹 Funzione per scaricare il QR Code come immagine
+  const downloadQRCode = () => {
+    if (qrRef.current) {
+      html2canvas(qrRef.current).then((canvas) => {
+        const link = document.createElement("a");
+        link.href = canvas.toDataURL("image/png");
+        link.download = "QRCode_Biglietto.png";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    }
+  };
+
+  // 🔹 Funzione per rimborsare un biglietto
   const refundTicket = async (ticketId) => {
     console.log(`🔄 Tentativo di rimborso per il biglietto ID: ${ticketId}`);
     toast.info(`🔄 Tentativo di rimborso per il biglietto #${ticketId}`);
@@ -69,18 +107,16 @@ const MyTickets = ({ account }) => {
 
       console.log("📡 Connessione ai contratti:", { paymentManagerWithSigner, eventFactoryWithSigner, ticketManagerWithSigner });
 
-      // ✅ Recupera l'ID dell'evento associato al biglietto
       const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
       console.log("🎟️ Evento associato al biglietto:", eventId.toString());
 
       const isCancelled = await eventFactoryWithSigner.isEventCancelled(eventId);
       if (!isCancelled) {
-        setMessage({ type: "danger", text: "Questo evento non è stato annullato! Non puoi chiedere il rimborso dei biglietti." });
+        setMessage({ type: "danger", text: "Questo evento non è stato annullato! Non puoi chiedere il rimborso." });
         toast.warn("❌ Questo evento non è stato annullato! Impossibile rimborsare.");
         return;
       }
 
-      // ✅ Recupera il prezzo del biglietto dal contratto EventFactory
       const eventDetails = await eventFactoryWithSigner.events(eventId);
       if (!eventDetails) {
           console.error("❌ Errore: Dettagli dell'evento non trovati!");
@@ -122,14 +158,12 @@ const MyTickets = ({ account }) => {
       console.log("✅ Rimborso completato!");
       toast.success("✅ Rimborso completato!");
 
-      // ✅ Dopo il rimborso, il biglietto viene eliminato
       console.log("🔥 Bruciatura del biglietto in corso...");
       const burnTx = await ticketManagerWithSigner.refundTicket(ticketId);
       await burnTx.wait();
       console.log("🔥 Biglietto bruciato!");
       toast.info("🔥 Biglietto eliminato dopo rimborso.");
 
-      // ✅ Aggiorna la lista dei biglietti
       setTickets((prevTickets) => prevTickets.filter((t) => t.id !== ticketId.toString()));
 
     } catch (error) {
@@ -146,7 +180,6 @@ const MyTickets = ({ account }) => {
       <h2 className="text-center">🎫 I tuoi Biglietti</h2>
 
       {message && <Alert variant={message.type}>{message.text}</Alert>}
-
       {loading && <Spinner animation="border" className="d-block mx-auto my-3" />}
 
       <div className="row">
@@ -156,7 +189,6 @@ const MyTickets = ({ account }) => {
               <Card className="mb-3">
                 <Card.Body>
                   <Card.Title>🎟️ Biglietto #{ticket.id}</Card.Title>
-                  <Card.Text>🔗 <a href={ticket.uri} target="_blank" rel="noopener noreferrer">Vedi metadati</a></Card.Text>
                   <Button 
                     onClick={() => refundTicket(ticket.id)} 
                     disabled={loading}
@@ -164,6 +196,17 @@ const MyTickets = ({ account }) => {
                   >
                     🔄 Richiedi Rimborso
                   </Button>
+                  <Button onClick={() => signTicketValidation(ticket.id)} variant="success">
+                    ✅ Genera Firma e QR Code
+                  </Button>
+                  {qrData && (
+                    <div ref={qrRef} className="mt-3">
+                      <QRCode value={qrData} size={150} />
+                      <Button onClick={downloadQRCode} className="mt-2" variant="primary">
+                        ⬇️ Scarica QR Code
+                      </Button>
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
             </div>
