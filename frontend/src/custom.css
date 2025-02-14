@@ -1,0 +1,170 @@
+/* 🎨 Stile Neumorfico con Sfumature di Blu */
+:root {
+  --bg-gradient: linear-gradient(135deg, #0a192f, #1c3b5a);
+  --dark-blue: #102a43;
+  --light-blue: #1e4b7a;
+  --text-color: #e0e0e0;
+  --shadow-light: rgba(255, 255, 255, 0.1);
+  --shadow-dark: rgba(0, 0, 0, 0.5);
+  --primary-blue: #007bff;
+  --hover-blue: #0056b3;
+  --danger-red: #dc3545;
+  --hover-red: #c82333;
+}
+
+body {
+  background: var(--bg-gradient) !important;
+  color: var(--text-color);
+  font-family: "Inter", sans-serif;
+}
+
+.bg-dark-blue {
+  background: var(--dark-blue) !important;
+  border-radius: 16px;
+  box-shadow: 5px 5px 15px var(--shadow-dark), -5px -5px 15px var(--shadow-light);
+  padding: 20px;
+}
+
+.neu-card {
+  background: var(--light-blue);
+  border-radius: 16px;
+  box-shadow: 6px 6px 20px var(--shadow-dark), -6px -6px 20px var(--shadow-light);
+  transition: all 0.3s ease-in-out;
+}
+
+.title-shadow {
+  text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary {
+  background: var(--primary-blue) !important;
+}
+
+.btn-danger {
+  background: var(--danger-red) !important;
+}
+
+.btn-primary:hover {
+  background: var(--hover-blue) !important;
+}
+
+.btn-danger:hover {
+  background: var(--hover-red) !important;
+}
+
+.custom-link {
+  color: var(--text-color);
+  font-weight: bold;
+  text-decoration: none;
+  padding: 10px 15px;
+  transition: color 0.3s ease-in-out;
+}
+
+.custom-link:hover {
+  color: var(--primary-blue);
+}
+
+/* 🎟️ Slider Orizzontale per Eventi e Gestione Eventi */
+.slider-container {
+  position: relative;
+  max-width: 100%;
+  overflow: hidden;
+  margin: 20px auto;
+}
+
+.event-slider {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 10px;
+  gap: 20px;
+  scrollbar-width: none;
+}
+
+.event-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.event-card {
+  background: var(--light-blue);
+  min-width: 280px;
+  border-radius: 16px;
+  box-shadow: 6px 6px 20px var(--shadow-dark), -6px -6px 20px var(--shadow-light);
+  padding: 20px;
+  transition: transform 0.3s ease-in-out;
+}
+
+.event-card:hover {
+  transform: scale(1.05);
+}
+
+.manage-events-container {
+  max-width: 1200px;
+  margin: auto;
+  text-align: center;
+}
+
+/* Slider Buttons - Fissi all'esterno */
+.slider-button {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 24px;
+  transition: background 0.3s ease-in-out, transform 0.2s;
+  z-index: 1000;
+}
+
+.slider-button:hover {
+  background: var(--hover-blue);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.slider-button.left {
+  left: 15px;
+}
+
+.slider-button.right {
+  right: 15px;
+}
+
+/* Frecce per spostarsi tra gli eventi */
+.slider-button.left::before {
+  font-size: 24px;
+}
+
+.slider-button.right::before {
+  font-size: 24px;
+}
+
+/* Form Styling */
+.neu-modal .modal-content {
+  background: var(--dark-blue);
+  border-radius: 16px;
+  box-shadow: 5px 5px 15px var(--shadow-dark), -5px -5px 15px var(--shadow-light);
+  padding: 20px;
+}
+
+.neu-modal .modal-header, .neu-modal .modal-footer {
+  border: none;
+}
+
+.neu-modal .form-control {
+  background: var(--light-blue);
+  border: none;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+  color: white;
+}
+
+.neu-modal .form-control:focus {
+  outline: none;
+  box-shadow: inset 2px 2px 4px var(--shadow-dark), inset -2px -2px 4px var(--shadow-light);
+}

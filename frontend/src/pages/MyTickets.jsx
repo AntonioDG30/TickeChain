@@ -5,13 +5,15 @@ import { ethers } from "ethers";
 import { toast } from "react-toastify";
 import QRCode from "react-qr-code";
 import html2canvas from "html2canvas";
+import "../custom.css";
 
 const MyTickets = ({ account }) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [qrData, setQrData] = useState(null);
-  const qrRef = useRef(null); // 🔹 Riferimento al QR Code per lo screenshot
+  const qrRef = useRef(null); 
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     const fetchUserTickets = async () => {
@@ -176,44 +178,31 @@ const MyTickets = ({ account }) => {
   };
 
   return (
-    <div className="mt-4">
-      <h2 className="text-center">🎫 I tuoi Biglietti</h2>
-
+    <div className="mt-4 text-center">
+      <h2 className="title-shadow">🎫 I tuoi Biglietti</h2>
       {message && <Alert variant={message.type}>{message.text}</Alert>}
       {loading && <Spinner animation="border" className="d-block mx-auto my-3" />}
-
-      <div className="row">
-        {tickets.length > 0 ? (
-          tickets.map((ticket) => (
-            <div className="col-md-4" key={ticket.id}>
-              <Card className="mb-3">
-                <Card.Body>
-                  <Card.Title>🎟️ Biglietto #{ticket.id}</Card.Title>
-                  <Button 
-                    onClick={() => refundTicket(ticket.id)} 
-                    disabled={loading}
-                    variant="danger"
-                  >
-                    🔄 Richiedi Rimborso
-                  </Button>
-                  <Button onClick={() => signTicketValidation(ticket.id)} variant="success">
-                    ✅ Genera Firma e QR Code
-                  </Button>
-                  {qrData && (
-                    <div ref={qrRef} className="mt-3">
-                      <QRCode value={qrData} size={150} />
-                      <Button onClick={downloadQRCode} className="mt-2" variant="primary">
-                        ⬇️ Scarica QR Code
-                      </Button>
-                    </div>
-                  )}
-                </Card.Body>
-              </Card>
-            </div>
-          ))
-        ) : (
-          <p className="text-center">❌ Nessun biglietto acquistato.</p>
-        )}
+      
+      <div className="slider-container position-relative">
+        <button className="slider-button left" onClick={() => scrollRef.current.scrollBy({ left: -300, behavior: "smooth" })}>⬅️</button>
+        <div className="event-slider" ref={scrollRef}>
+          {tickets.map((ticket) => (
+            <Card key={ticket.id} className="event-card text-white">
+              <Card.Body>
+                <Card.Title>🎟️ Biglietto #{ticket.id}</Card.Title>
+                <Button className="btn-danger" onClick={() => refundTicket(ticket.id)}>🔄 Richiedi Rimborso</Button>
+                <Button className="btn-primary" onClick={() => signTicketValidation(ticket.id)}>✅ Genera QR Code</Button>
+                {qrData && (
+                  <div ref={qrRef} className="mt-3">
+                    <QRCode value={qrData} size={150} />
+                    <Button className="btn-primary mt-2" onClick={downloadQRCode}>⬇️ Scarica QR Code</Button>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          ))}
+        </div>
+        <button className="slider-button right" onClick={() => scrollRef.current.scrollBy({ left: 300, behavior: "smooth" })}>➡️</button>
       </div>
     </div>
   );

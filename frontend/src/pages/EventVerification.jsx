@@ -4,6 +4,7 @@ import { Button, Alert, Form, Spinner } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
 import { ticketManagerContract, paymentManagerContract, eventFactoryContract, provider } from "../utils/contracts";
+import "../custom.css";
 
 const EventVerification = () => {
   const [scannedData, setScannedData] = useState(null);
@@ -161,30 +162,19 @@ const EventVerification = () => {
   
 
   return (
-    <div className="container mt-4">
-      <h2 className="text-center">🔍 Scansiona il QR Code per Verificare</h2>
-
-      {/* Scanner QR Code */}
-      <div id="qr-reader" className="mt-3"></div>
-
-      {/* Upload QR Code da immagine */}
-      <Form.Group controlId="formFile" className="mt-3">
-        <Form.Label>📂 Carica immagine con QR Code:</Form.Label>
-        <Form.Control type="file" accept="image/png, image/jpeg" onChange={handleFileChange} />
-      </Form.Group>
-
-      {/* Placeholder per Html5Qrcode scanFile */}
-      <div id="qr-reader-file" className="d-none"></div>
-
-      {/* Spinner durante il trasferimento fondi */}
+    <div className="verification-container text-center">
+      <h2 className="title-shadow">🔍 Scansiona il QR Code</h2>
+      <div className="neu-card p-4 mt-3">
+        <div id="qr-reader" className="qr-box"></div>
+        <Form.Group controlId="formFile" className="mt-3">
+          <Form.Label>📂 Carica immagine con QR Code:</Form.Label>
+          <Form.Control type="file" accept="image/png, image/jpeg" onChange={handleFileChange} />
+        </Form.Group>
+      </div>
       {loading && <Spinner animation="border" className="d-block mx-auto my-3" />}
-
-      {/* Risultato della verifica */}
       {scannedData && (
         <Alert variant={isValid ? "success" : "danger"} className="mt-3">
-          {isValid
-            ? `✅ Biglietto #${scannedData.ticketId} verificato con successo!`
-            : "❌ Firma non valida! Il biglietto potrebbe essere falso."}
+          {isValid ? `✅ Biglietto #${scannedData.ticketId} verificato!` : "❌ Firma non valida!"}
         </Alert>
       )}
     </div>

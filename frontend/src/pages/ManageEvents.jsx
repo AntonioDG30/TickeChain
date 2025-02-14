@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Button, Form, Modal, Alert } from "react-bootstrap";
+import React, { useEffect, useState, useRef } from "react";
+import { Button, Form, Modal, Alert, Card } from "react-bootstrap";
 import { ethers } from "ethers";
 import { eventFactoryContract, provider } from "../utils/contracts";
 import { toast } from "react-toastify";
+import "../custom.css";
 
 const ManageEvents = ({ account }) => {
   const [events, setEvents] = useState([]);
@@ -17,6 +18,7 @@ const ManageEvents = ({ account }) => {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     checkEmergencyStatus();
@@ -136,31 +138,33 @@ const ManageEvents = ({ account }) => {
   };
 
   return (
-    <div className="mt-4">
-      <h2 className="text-center">⚙️ Gestisci i tuoi Eventi</h2>
-
-      <Button className="mb-3" onClick={handleShowModal}>
-        ➕ Crea Nuovo Evento
-      </Button>
+    <div className="manage-events-container">
+      <h2 className="title-shadow text-center">⚙️ Gestisci i tuoi Eventi</h2>
+      <Button className="neu-button mb-3" onClick={handleShowModal}>➕ Crea Nuovo Evento</Button>
 
       {message && <Alert variant="info">{message}</Alert>}
-
-      <ul>
-        {events.map((event) => (
-          <li key={event.id} className="mb-2">
-            {event.name} - Stato: {event.state}
-            <Button variant="warning" size="sm" className="mx-2" onClick={() => changeEventState(event.id, 1)}>
-              Apri Vendite
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => cancelEvent(event.id)}>
-              Annulla Evento
-            </Button>
-          </li>
-        ))}
-      </ul>
+      
+      <div className="slider-container position-relative">
+        <button className="slider-button left" onClick={() => scrollRef.current.scrollBy({ left: -300, behavior: "smooth" })}>⬅️</button>
+        <div className="event-slider" ref={scrollRef}>
+          {events.map((event) => (
+            <Card key={event.id} className="event-card text-white">
+              <Card.Body>
+                <Card.Title>{event.name}</Card.Title>
+                <Card.Text>🔄 Stato: {event.state}</Card.Text>
+                <div className="d-flex justify-content-between">
+                  <Button className="btn-primary" onClick={() => changeEventState(event.id, 1)}>Apri Vendite</Button>
+                  <Button className="btn-danger" onClick={() => changeEventState(event.id, 3)}>Annulla Evento</Button>
+                </div>
+              </Card.Body>
+            </Card>
+          ))}
+        </div>
+        <button className="slider-button right" onClick={() => scrollRef.current.scrollBy({ left: 300, behavior: "smooth" })}>➡️</button>
+      </div>
 
       {/* Modale per la Creazione dell'Evento */}
-      <Modal show={showModal} onHide={handleCloseModal}>
+      <Modal show={showModal} onHide={handleCloseModal} className="neu-modal">
         <Modal.Header closeButton>
           <Modal.Title>➕ Crea un Nuovo Evento</Modal.Title>
         </Modal.Header>
@@ -168,86 +172,33 @@ const ManageEvents = ({ account }) => {
           <Form>
             <Form.Group>
               <Form.Label>Nome Evento</Form.Label>
-              <Form.Control
-                type="text"
-                name="name"
-                placeholder="Inserisci il nome"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
+              <Form.Control type="text" name="name" value={formData.name} onChange={handleChange} required />
             </Form.Group>
-
             <Form.Group>
               <Form.Label>Luogo</Form.Label>
-              <Form.Control
-                type="text"
-                name="location"
-                placeholder="Inserisci la location"
-                value={formData.location}
-                onChange={handleChange}
-                required
-              />
+              <Form.Control type="text" name="location" value={formData.location} onChange={handleChange} required />
             </Form.Group>
-
             <Form.Group>
               <Form.Label>Descrizione Evento</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                name="description"
-                placeholder="Inserisci una descrizione"
-                value={formData.description}
-                onChange={handleChange}
-                required
-              />
+              <Form.Control as="textarea" rows={3} name="description" value={formData.description} onChange={handleChange} required />
             </Form.Group>
-
             <Form.Group>
               <Form.Label>Data</Form.Label>
-              <Form.Control
-                type="date"
-                name="date"
-                value={formData.date}
-                min={new Date().toISOString().split("T")[0]}
-                onChange={handleChange}
-                required
-              />
+              <Form.Control type="date" name="date" value={formData.date} min={new Date().toISOString().split("T")[0]} onChange={handleChange} required />
             </Form.Group>
-
             <Form.Group>
               <Form.Label>Prezzo del Biglietto (ETH)</Form.Label>
-              <Form.Control
-                type="number"
-                step="0.01"
-                name="price"
-                placeholder="0.1"
-                value={formData.price}
-                min="0"
-                onChange={handleChange}
-                required
-              />
+              <Form.Control type="number" step="0.01" name="price" value={formData.price} onChange={handleChange} required />
             </Form.Group>
-
             <Form.Group>
               <Form.Label>Biglietti Disponibili</Form.Label>
-              <Form.Control
-                type="number"
-                name="ticketsAvailable"
-                placeholder="100"
-                value={formData.ticketsAvailable}
-                min="1"
-                onChange={handleChange}
-                required
-              />
+              <Form.Control type="number" name="ticketsAvailable" value={formData.ticketsAvailable} onChange={handleChange} required />
             </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseModal}>Chiudi</Button>
-          <Button variant="primary" onClick={handleCreateEvent} disabled={loading}>
-            {loading ? "Creazione in corso..." : "Crea Evento"}
-          </Button>
+          <Button className="btn-primary" onClick={handleCreateEvent} disabled={loading}>{loading ? "Creazione in corso..." : "Crea Evento"}</Button>
         </Modal.Footer>
       </Modal>
     </div>

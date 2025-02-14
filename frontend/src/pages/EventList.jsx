@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Button, Card, Spinner } from "react-bootstrap";
 import { ethers } from "ethers";
 import { eventFactoryContract, ticketManagerContract, paymentManagerContract, provider } from "../utils/contracts";
 import { toast } from "react-toastify";
+import "../custom.css";
 
 const EventList = ({ account }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const scrollRef = useRef(null);
 
   const fetchEvents = async () => {
     try {          
@@ -123,13 +125,15 @@ const EventList = ({ account }) => {
   };
 
   return (
-    <div className="mt-4">
-      <h2 className="text-center">🎟️ Eventi Disponibili</h2>
-      {loading && <Spinner animation="border" />}
-      <div className="row">
-        {events.map((event) => (
-          <div className="col-md-4" key={event.id}>
-            <Card className="mb-3">
+    <div className="mt-4 text-center">
+      <h2 className="title-shadow">🎟️ Eventi Disponibili</h2>
+      {loading && <Spinner animation="border" className="d-block mx-auto my-3" />}
+      
+      <div className="slider-container position-relative">
+        <button className="slider-button left" onClick={() => scrollRef.current.scrollBy({ left: -300, behavior: "smooth" })}>⬅️</button>
+        <div className="event-slider" ref={scrollRef}>
+          {events.map((event) => (
+            <Card key={event.id} className="event-card text-white">
               <Card.Body>
                 <Card.Title>{event.name}</Card.Title>
                 <Card.Text>📝 {event.description}</Card.Text>
@@ -137,13 +141,14 @@ const EventList = ({ account }) => {
                 <Card.Text>📍 {event.location}</Card.Text>
                 <Card.Text>💰 {event.price} ETH</Card.Text>
                 <Card.Text>🎟️ {event.ticketsAvailable} disponibili</Card.Text>
-                <Button onClick={() => buyTicket(event.id, event.price)} disabled={loading}>
-                    🛒 Acquista Biglietto
+                <Button onClick={() => buyTicket(event.id, event.price)} className="btn-buy">
+                  🛒 Acquista Biglietto
                 </Button>
               </Card.Body>
             </Card>
-          </div>
-        ))}
+          ))}
+        </div>
+        <button className="slider-button right" onClick={() => scrollRef.current.scrollBy({ left: 300, behavior: "smooth" })}>➡️</button>
       </div>
     </div>
   );
