@@ -12,10 +12,14 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
     mapping(uint256 => uint256) public ticketToEventId;
     mapping(uint256 => bool) public refundedTickets;
     mapping(uint256 => bool) public activeTickets; // 🔹 Nuovo mapping per tenere solo i biglietti validi
+    mapping(uint256 => bool) public verifiedTickets; // 🔹 Mappa per i biglietti già verificati
+
 
     event TicketMinted(uint256 indexed ticketId, address indexed owner, string uri, uint256 eventId);
     event TicketRefunded(uint256 indexed ticketId, address indexed owner);
     event EmergencyStopActivated(string message);
+    event TicketVerified(uint256 indexed ticketId, address verifier);
+
 
     constructor() ERC721("TickeChain NFT", "TKT") {
         ticketCounter = 1; // 🔹 Partiamo da 1 per evitare ID zero
@@ -55,6 +59,18 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
         _burn(_ticketId);
 
         emit TicketRefunded(_ticketId, msg.sender);
+    }
+
+    function markTicketAsVerified(uint256 _ticketId) external whenNotPaused {
+        require(ownerOf(_ticketId) != address(0), "Il biglietto non esiste");
+        require(!verifiedTickets[_ticketId], "Il biglietto e' gia' stato verificato!");
+
+        verifiedTickets[_ticketId] = true;
+        emit TicketVerified(_ticketId, msg.sender);
+    }
+
+    function isTicketVerified(uint256 _ticketId) external view returns (bool) {
+        return verifiedTickets[_ticketId];
     }
 
     function getTotalMintedTickets() external view returns (uint256) {
