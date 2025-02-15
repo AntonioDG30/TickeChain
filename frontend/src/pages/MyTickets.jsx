@@ -11,7 +11,7 @@ const MyTickets = ({ account }) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
-  const [qrData, setQrData] = useState(null);
+  const [qrData, setQrData] = useState({}); 
   const qrRef = useRef(null); 
   const scrollRef = useRef(null);
 
@@ -64,34 +64,88 @@ const MyTickets = ({ account }) => {
   const signTicketValidation = async (ticketId) => {
     try {
       toast.info(`🔍 Generazione della firma per il biglietto #${ticketId}...`);
-
+  
       const signer = await provider.getSigner();
       const message = `Sto validando il mio biglietto #${ticketId}`;
       const signature = await signer.signMessage(message);
-
+  
       const signedData = JSON.stringify({ ticketId, message, signature });
-
-      setQrData(signedData);
+  
+      // 🔹 Ora salviamo il QR Code solo per questo ticketId
+      setQrData((prevQrData) => ({
+        ...prevQrData,
+        [ticketId]: signedData,
+      }));
+  
       toast.success("✅ Firma generata con successo! Scansiona il QR Code per verificare.");
     } catch (error) {
       console.error("❌ Errore durante la firma:", error);
       toast.error("❌ Errore durante la firma del biglietto!");
     }
   };
+  
 
   // 🔹 Funzione per scaricare il QR Code come immagine
-  const downloadQRCode = () => {
-    if (qrRef.current) {
-      html2canvas(qrRef.current).then((canvas) => {
-        const link = document.createElement("a");
-        link.href = canvas.toDataURL("image/png");
-        link.download = "QRCode_Biglietto.png";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
+  const downloadQRCode = async (ticketId) => {
+    const qrElement = document.getElementById(`qr-${ticketId}`);
+  
+    if (!qrElement) {
+      console.error("❌ Errore: QR Code non trovato per il biglietto", ticketId);
+      toast.error("❌ Errore: QR Code non trovato!");
+      return;
     }
+  
+    // Troviamo l'elemento SVG generato da react-qr-code
+    const svg = qrElement.querySelector("svg");
+  
+    if (!svg) {
+      console.error("❌ Errore: Nessun elemento SVG trovato nel QR Code");
+      toast.error("❌ Il QR Code non è stato generato correttamente.");
+      return;
+    }
+  
+    // Convertiamo l'SVG in un'immagine base64
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svg);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+  
+    // Creiamo un'immagine per la cattura
+    const img = new Image();
+    img.src = svgUrl;
+    img.onload = () => {
+      const qrCanvas = document.createElement("canvas");
+      const ctx = qrCanvas.getContext("2d");
+  
+      qrCanvas.width = 250;
+      qrCanvas.height = 300;
+  
+      // Aggiungiamo il testo "Biglietto #ID"
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, qrCanvas.width, qrCanvas.height);
+      ctx.fillStyle = "black";
+      ctx.font = "bold 20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(`Biglietto #${ticketId}`, qrCanvas.width / 2, 30);
+  
+      // Disegniamo il QR Code sotto il testo
+      ctx.drawImage(img, 25, 50, 200, 200);
+  
+      // Creiamo il link per il download
+      const link = document.createElement("a");
+      link.href = qrCanvas.toDataURL("image/png");
+      link.download = `QRCode_Biglietto_${ticketId}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  
+      URL.revokeObjectURL(svgUrl);
+    };
   };
+  
+  
+  
+  
 
   // 🔹 Funzione per rimborsare un biglietto
   const refundTicket = async (ticketId) => {
@@ -192,10 +246,12 @@ const MyTickets = ({ account }) => {
                 <Card.Title>🎟️ Biglietto #{ticket.id}</Card.Title>
                 <Button className="btn-danger" onClick={() => refundTicket(ticket.id)}>🔄 Richiedi Rimborso</Button>
                 <Button className="btn-primary" onClick={() => signTicketValidation(ticket.id)}>✅ Genera QR Code</Button>
-                {qrData && (
-                  <div ref={qrRef} className="mt-3">
-                    <QRCode value={qrData} size={150} />
-                    <Button className="btn-primary mt-2" onClick={downloadQRCode}>⬇️ Scarica QR Code</Button>
+                {qrData[ticket.id] && (
+                  <div id={`qr-${ticket.id}`} className="mt-3">
+                    <QRCode value={qrData[ticket.id]} size={200} />
+                    <Button className="btn-primary mt-2" onClick={() => downloadQRCode(ticket.id)}>
+                      ⬇️ Scarica QR Code
+                    </Button>
                   </div>
                 )}
               </Card.Body>

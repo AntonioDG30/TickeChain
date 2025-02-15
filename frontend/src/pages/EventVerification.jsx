@@ -23,27 +23,32 @@ const EventVerification = () => {
     return () => scanner.clear();
   }, []);
 
-  // 🔹 Funzione per leggere il QR Code da immagine
   const handleFileChange = async (event) => {
     if (event.target.files.length === 0) return;
-
+  
     const imageFile = event.target.files[0];
-
-    // ✅ Controlliamo il formato del file
+  
     const allowedFormats = ["image/png", "image/jpeg", "image/jpg"];
     if (!allowedFormats.includes(imageFile.type)) {
       toast.error("❌ Formato file non supportato! Usa PNG o JPG.");
       return;
     }
-
+  
     setQrFile(imageFile);
-
+  
     try {
+      let qrReaderElement = document.getElementById("qr-reader-file");
+      if (!qrReaderElement) {
+        qrReaderElement = document.createElement("div");
+        qrReaderElement.id = "qr-reader-file";
+        document.body.appendChild(qrReaderElement);
+      }
+  
       const html5QrCode = new Html5Qrcode("qr-reader-file");
-
+  
       console.log("📂 File selezionato:", imageFile.name);
       console.log("🔍 Tentativo di lettura QR Code dall'immagine...");
-
+  
       const result = await html5QrCode.scanFile(imageFile, false);
       console.log("✅ QR Code letto con successo:", result);
       handleScan(result);
@@ -52,8 +57,7 @@ const EventVerification = () => {
       toast.error("❌ Impossibile leggere il QR Code dall'immagine! Assicurati che il QR sia ben visibile.");
     }
   };
-
-  // 🔹 Funzione per gestire il QR Code scansionato
+  
   const handleScan = async (result) => {
     if (!result) return;
   
@@ -63,7 +67,6 @@ const EventVerification = () => {
   
       setScannedData({ ticketId, signerAddress });
   
-      // ✅ Controlla se il biglietto è già stato verificato PRIMA di mostrare il messaggio
       const signer = await provider.getSigner();
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
   
@@ -75,11 +78,9 @@ const EventVerification = () => {
         return;
       }
   
-      // ✅ Se il biglietto è valido e non è stato già verificato, mostra il messaggio di successo
       toast.success(`✅ Biglietto #${ticketId} verificato con successo!`);
       setIsValid(true);
   
-      // 🔥 Dopo la verifica, rilascia i fondi al creatore dell'evento
       await releaseFunds(ticketId);
     } catch (error) {
       console.error("❌ Errore nella verifica della firma:", error);
@@ -90,7 +91,6 @@ const EventVerification = () => {
   
   
 
-  // 🔹 Funzione per rilasciare i fondi al creatore dell'evento
   const releaseFunds = async (ticketId) => {
     setLoading(true);
     try {
@@ -99,7 +99,6 @@ const EventVerification = () => {
       const eventFactoryWithSigner = eventFactoryContract.connect(signer);
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
   
-      // ✅ Controlla se il biglietto è già stato verificato
       const isAlreadyVerified = await ticketManagerWithSigner.isTicketVerified(ticketId);
       if (isAlreadyVerified) {
         console.error("❌ Questo biglietto è già stato verificato!");
@@ -107,11 +106,9 @@ const EventVerification = () => {
         return;
       }
   
-      // ✅ Recupera l'ID dell'evento dal contratto TicketManager
       const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
       console.log("🎟️ Evento associato al biglietto:", eventId.toString());
   
-      // ✅ Recupera il creatore dell'evento dal contratto EventFactory
       const eventDetails = await eventFactoryWithSigner.events(eventId);
       const creatorAddress = eventDetails.creator;
       console.log("👤 Creatore evento:", creatorAddress);
@@ -121,11 +118,9 @@ const EventVerification = () => {
         return;
       }
   
-      // ✅ Recupera l'importo da rilasciare
       const releaseAmount = eventDetails.price ? ethers.formatEther(eventDetails.price) : "0";
       console.log("💰 Importo da rilasciare:", releaseAmount);
   
-      // ✅ Controlliamo il saldo del contratto PaymentManager
       const contractBalance = await provider.getBalance(paymentManagerContract.target);
       console.log("💰 Saldo PaymentManager:", ethers.formatEther(contractBalance));
   
@@ -134,12 +129,10 @@ const EventVerification = () => {
         return;
       }
   
-      // ✅ Marca il biglietto come verificato prima di rilasciare i fondi
       console.log("✅ Marcatura del biglietto come verificato...");
       const markTx = await ticketManagerWithSigner.markTicketAsVerified(ticketId);
       await markTx.wait();
   
-      // ✅ Trasferimento fondi al creatore
       console.log("📤 Trasferimento fondi...");
       const tx = await paymentManagerWithSigner.releaseFundsToCreator(
         creatorAddress,
@@ -164,8 +157,10 @@ const EventVerification = () => {
   return (
     <div className="verification-container text-center">
       <h2 className="title-shadow">🔍 Scansiona il QR Code</h2>
+
       <div className="neu-card p-4 mt-3">
-        <div id="qr-reader" className="qr-box"></div>
+        <div id="qr-reader" className="qr-box"></div>  
+        <div id="qr-reader-file" style={{ display: "none" }}></div>
         <Form.Group controlId="formFile" className="mt-3">
           <Form.Label>📂 Carica immagine con QR Code:</Form.Label>
           <Form.Control type="file" accept="image/png, image/jpeg" onChange={handleFileChange} />
