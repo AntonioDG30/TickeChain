@@ -137,6 +137,22 @@ const ManageEvents = ({ account }) => {
     }
   };
 
+  const getEventStateLabel = (state) => {
+    switch (state) {
+      case 0:
+        return "📌 Creato ma non aperto alla vendita";
+      case 1:
+        return "🟢 Aperto alla vendita";
+      case 2:
+        return "⏳ Terminato";
+      case 3:
+        return "❌ Annullato";
+      default:
+        return "⚠️ Stato sconosciuto";
+    }
+  };
+  
+
   return (
     <div className="manage-events-container">
       <h2 className="title-shadow text-center">⚙️ Gestisci i tuoi Eventi</h2>
@@ -151,7 +167,7 @@ const ManageEvents = ({ account }) => {
             <Card key={event.id} className="event-card text-white">
               <Card.Body>
                 <Card.Title>{event.name}</Card.Title>
-                <Card.Text>🔄 Stato: {event.state}</Card.Text>
+                <Card.Text>🔄 Stato: {getEventStateLabel(event.state)}</Card.Text>
                 <div className="d-flex justify-content-between">
                   <Button className="btn-primary" onClick={() => changeEventState(event.id, 1)}>Apri Vendite</Button>
                   <Button className="btn-danger" onClick={() => changeEventState(event.id, 3)}>Annulla Evento</Button>
