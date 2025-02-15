@@ -8,6 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 function App() {
   const [account, setAccount] = useState(null);
 
+  // ✅ Funzione per connettere il wallet
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
@@ -23,6 +24,7 @@ function App() {
     }
   };
 
+  // ✅ Funzione per disconnettere il wallet
   const disconnectWallet = () => {
     setAccount(null);
     toast.info("❌ Wallet disconnesso!");
@@ -37,7 +39,23 @@ function App() {
         }
       }
     };
+
     checkWalletConnection();
+
+    // ✅ Ascolta il cambio di account e forza la disconnessione
+    window.ethereum?.on("accountsChanged", (accounts) => {
+      if (accounts.length === 0) {
+        console.log("❌ Nessun account connesso. Disconnessione...");
+        disconnectWallet();
+      } else {
+        console.log("🔄 Cambio account rilevato:", accounts[0]);
+        setAccount(null); // ✅ Disconnette e lascia che `ProtectedRoute` gestisca il redirect
+      }
+    });
+
+    return () => {
+      window.ethereum?.removeListener("accountsChanged", () => {});
+    };
   }, []);
 
   return (
@@ -45,10 +63,26 @@ function App() {
       <ToastContainer position="top-right" autoClose={3000} />
       <Routes>
         <Route path="/login" element={<Login connectWallet={connectWallet} />} />
-        <Route path="/*" element={account ? <Dashboard account={account} disconnectWallet={disconnectWallet} /> : <Login connectWallet={connectWallet} />} />
+        <Route path="/*" element={<ProtectedRoute account={account} disconnectWallet={disconnectWallet} />} />
       </Routes>
     </Router>
   );
 }
+
+// ✅ Componente per gestire il reindirizzamento automatico se l'utente è disconnesso
+import { useNavigate } from "react-router-dom";
+
+const ProtectedRoute = ({ account, disconnectWallet }) => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!account) {
+      toast.warn("⚠️ Sei stato disconnesso!");
+      navigate("/login");
+    }
+  }, [account, navigate]);
+
+  return account ? <Dashboard account={account} disconnectWallet={disconnectWallet} /> : null;
+};
 
 export default App;
