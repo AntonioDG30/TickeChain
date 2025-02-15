@@ -68,8 +68,28 @@ const EventVerification = () => {
       setScannedData({ ticketId, signerAddress });
   
       const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress(); // Otteniamo l'account che sta verificando
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
+      const eventFactoryWithSigner = eventFactoryContract.connect(signer);
   
+      // ✅ Recuperiamo l'ID dell'evento associato al biglietto
+      const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
+      console.log("🎟️ Evento associato al biglietto:", eventId.toString());
+  
+      // ✅ Recuperiamo il creatore dell'evento
+      const eventDetails = await eventFactoryWithSigner.events(eventId);
+      const eventCreator = eventDetails.creator;
+      console.log("👤 Creatore dell'evento:", eventCreator);
+  
+      // ✅ Verifica se l'account dell'utente è il creatore dell'evento
+      if (userAddress.toLowerCase() !== eventCreator.toLowerCase()) {
+        console.error("❌ Non sei il creatore di questo evento!");
+        toast.error("❌ Solo il creatore dell'evento può verificare i biglietti!");
+        setIsValid(false);
+        return;
+      }
+  
+      // ✅ Controlla se il biglietto è già stato verificato
       const isAlreadyVerified = await ticketManagerWithSigner.isTicketVerified(ticketId);
       if (isAlreadyVerified) {
         console.warn("⚠️ Questo biglietto è già stato verificato!");
@@ -88,6 +108,7 @@ const EventVerification = () => {
       setIsValid(false);
     }
   };
+  
   
   
 
