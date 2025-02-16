@@ -12,8 +12,6 @@ const EventList = ({ account }) => {
 
   const fetchEvents = async () => {
     try {          
-      console.log("📡 Recupero eventi disponibili...");
-      toast.info("📡 Recupero eventi disponibili...");
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
   
@@ -23,7 +21,6 @@ const EventList = ({ account }) => {
       for (let i = 0; i < totalEvents; i++) {
         const event = await eventFactoryContract.events(i);
 
-        // Filtra gli eventi creati dall'utente connesso
         if (event.creator.toLowerCase() !== userAddress.toLowerCase()) {
           fetchedEvents.push({
             id: i,
@@ -38,8 +35,6 @@ const EventList = ({ account }) => {
       }
   
       setEvents(fetchedEvents);
-      console.log("✅ Eventi aggiornati:", fetchedEvents);
-      toast.success("✅ Eventi aggiornati!");
     } catch (error) {
       console.error("❌ Errore nel recupero eventi:", error);
       toast.error("❌ Errore nel recupero eventi!");
@@ -51,8 +46,6 @@ const EventList = ({ account }) => {
   }, [account]);
 
   const buyTicket = async (eventId, price) => {
-    console.log(`🛒 Acquisto biglietto per evento ID: ${eventId}`);
-    toast.info(`🛒 Tentativo di acquisto per evento ID: ${eventId}`);
     
     try {
       const signer = await provider.getSigner();
@@ -61,62 +54,43 @@ const EventList = ({ account }) => {
       const paymentManagerWithSigner = paymentManagerContract.connect(signer);
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
   
-      console.log("📡 Connessione a PaymentManager.sol");
   
-      // 🔹 Controllo se il contratto è in pausa
       const isPaused = await ticketManagerWithSigner.paused();
       if (isPaused) {
         toast.warn("⏸️ Il contratto è in pausa! Impossibile procedere.");
         return;
       }
 
-      // 🔹 Controlliamo se l'evento è annullato
       const isCancelled = await eventFactoryWithSigner.isEventCancelled(eventId);
       if (isCancelled) {
         toast.error("❌ Questo evento è stato annullato! Non puoi acquistare biglietti.");
         return;
       }
 
-      // 🔹 Controlliamo se l'evento è aperto alla vendita
       const isOpen = await eventFactoryWithSigner.isEventOpen(eventId);
       if (!isOpen) {
         toast.warn("❌ La vendita per questo evento non è ancora aperta! Non puoi acquistare biglietti.");
         return;
       }
   
-      // 🔹 Deposito ETH su PaymentManager.sol
-      console.log(`💰 Deposito di ${price} ETH`);
-      toast.info(`💰 Deposito di ${price} ETH in corso...`);
       const depositTx = await paymentManagerWithSigner.depositFunds({
         value: ethers.parseEther(price.toString()),
-        gasLimit: 300000, // Impostiamo un gasLimit più alto
+        gasLimit: 300000, 
       });
       await depositTx.wait();
-      console.log("✅ Deposito completato!");
-      toast.success("✅ Deposito completato!");
 
-      // 🔹 Mint del biglietto
-      console.log("🎟️ Avvio minting del biglietto...");
-      toast.info("🎟️ Creazione del biglietto in corso...");
       const tx = await ticketManagerWithSigner.mintTicket(
         userAddress, 
         "https://example.com/ticket", 
         eventId,
-        { gasLimit: 500000 } // 🔹 Forziamo il gas limit
+        { gasLimit: 500000 } 
       );
       await tx.wait();
-      console.log("✅ Biglietto acquistato con successo!");
       toast.success("✅ Biglietto acquistato con successo!");
 
-      // 🔹 Decrementa i biglietti disponibili
-      console.log("📉 Aggiornamento biglietti disponibili...");
-      toast.info("📉 Aggiornamento biglietti disponibili...");
       const updateTx = await eventFactoryWithSigner.decreaseTicketCount(eventId);
       await updateTx.wait();
-      console.log("✅ Numero biglietti decrementato!");
-      toast.success("✅ Numero biglietti decrementato!");
   
-      // 🔄 Aggiorna la lista eventi
       fetchEvents();
     } catch (error) {
       console.error("❌ Errore durante l'acquisto:", error);

@@ -6,13 +6,13 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TicketManager is ERC721URIStorage, Pausable, Ownable {
-    uint256 private ticketCounter;  // 🔹 Contatore progressivo per i biglietti
-    uint256 private failedMintAttempts = 0; // 🔹 Traccia il numero di errori di minting
+    uint256 private ticketCounter;  
+    uint256 private failedMintAttempts = 0; 
 
     mapping(uint256 => uint256) public ticketToEventId;
     mapping(uint256 => bool) public refundedTickets;
-    mapping(uint256 => bool) public activeTickets; // 🔹 Nuovo mapping per tenere solo i biglietti validi
-    mapping(uint256 => bool) public verifiedTickets; // 🔹 Mappa per i biglietti già verificati
+    mapping(uint256 => bool) public activeTickets;
+    mapping(uint256 => bool) public verifiedTickets; 
 
 
     event TicketMinted(uint256 indexed ticketId, address indexed owner, string uri, uint256 eventId);
@@ -22,7 +22,7 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
 
 
     constructor() ERC721("TickeChain NFT", "TKT") {
-        ticketCounter = 1; // 🔹 Partiamo da 1 per evitare ID zero
+        ticketCounter = 1;
     }
 
     function mintTicket(address _to, string memory _uri, uint256 _eventId) external whenNotPaused {
@@ -30,9 +30,8 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
         require(bytes(_uri).length > 0, "URI non valido");
 
         uint256 ticketId = ticketCounter;
-        ticketCounter++; // 🔹 Incrementiamo il contatore subito
+        ticketCounter++;
 
-        // 🔹 Se il mint fallisce, lo stato del contratto non viene alterato, ma aumentiamo il contatore
         if (_exists(ticketId)) {
             failedMintAttempts++;
             if (failedMintAttempts >= 5) {
@@ -55,7 +54,7 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
         require(!refundedTickets[_ticketId], "Biglietto gia' rimborsato");
 
         refundedTickets[_ticketId] = true;
-        activeTickets[_ticketId] = false; // 🔹 Rimuoviamo il biglietto dagli attivi
+        activeTickets[_ticketId] = false; 
         _burn(_ticketId);
 
         emit TicketRefunded(_ticketId, msg.sender);
@@ -74,7 +73,7 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
     }
 
     function getTotalMintedTickets() external view returns (uint256) {
-        return ticketCounter - 1; // 🔹 Numero totale di biglietti generati
+        return ticketCounter - 1; 
     }
 
     function isTicketActive(uint256 _ticketId) external view returns (bool) {
@@ -82,11 +81,11 @@ contract TicketManager is ERC721URIStorage, Pausable, Ownable {
     }
 
     function emergencyStop() external onlyOwner {
-        _pause(); // Blocca il contratto
+        _pause(); 
     }
 
     function resumeOperations() external onlyOwner {
-        _unpause(); // Riattiva il contratto
+        _unpause(); 
     }
 
     function pause() external onlyOwner {

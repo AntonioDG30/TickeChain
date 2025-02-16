@@ -19,8 +19,6 @@ const MyTickets = ({ account }) => {
     const fetchUserTickets = async () => {
       try {
         setLoading(true);
-        toast.info("📡 Recupero biglietti NFT in corso...");
-        console.log("📡 Recupero biglietti NFT posseduti dall'utente...");
         const signer = await provider.getSigner();
         const userAddress = await signer.getAddress();
         const maxTicketId = await ticketManagerContract.getTotalMintedTickets();
@@ -46,7 +44,6 @@ const MyTickets = ({ account }) => {
         }
 
         setTickets(userTickets);
-        console.log("✅ Biglietti attivi recuperati:", userTickets);
         toast.success("✅ Biglietti aggiornati!");
       } catch (error) {
         console.error("❌ Errore nel recupero dei biglietti:", error);
@@ -60,7 +57,6 @@ const MyTickets = ({ account }) => {
     fetchUserTickets();
   }, [account]);
 
-  // 🔹 Funzione per generare la firma e creare un QR Code
   const signTicketValidation = async (ticketId) => {
     try {
       toast.info(`🔍 Generazione della firma per il biglietto #${ticketId}...`);
@@ -71,7 +67,6 @@ const MyTickets = ({ account }) => {
   
       const signedData = JSON.stringify({ ticketId, message, signature });
   
-      // 🔹 Ora salviamo il QR Code solo per questo ticketId
       setQrData((prevQrData) => ({
         ...prevQrData,
         [ticketId]: signedData,
@@ -85,7 +80,6 @@ const MyTickets = ({ account }) => {
   };
   
 
-  // 🔹 Funzione per scaricare il QR Code come immagine
   const downloadQRCode = async (ticketId) => {
     const qrElement = document.getElementById(`qr-${ticketId}`);
   
@@ -95,7 +89,6 @@ const MyTickets = ({ account }) => {
       return;
     }
   
-    // Troviamo l'elemento SVG generato da react-qr-code
     const svg = qrElement.querySelector("svg");
   
     if (!svg) {
@@ -104,13 +97,11 @@ const MyTickets = ({ account }) => {
       return;
     }
   
-    // Convertiamo l'SVG in un'immagine base64
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(svg);
     const svgBlob = new Blob([svgString], { type: "image/svg+xml" });
     const svgUrl = URL.createObjectURL(svgBlob);
   
-    // Creiamo un'immagine per la cattura
     const img = new Image();
     img.src = svgUrl;
     img.onload = () => {
@@ -120,7 +111,6 @@ const MyTickets = ({ account }) => {
       qrCanvas.width = 250;
       qrCanvas.height = 300;
   
-      // Aggiungiamo il testo "Biglietto #ID"
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, qrCanvas.width, qrCanvas.height);
       ctx.fillStyle = "black";
@@ -128,10 +118,8 @@ const MyTickets = ({ account }) => {
       ctx.textAlign = "center";
       ctx.fillText(`Biglietto #${ticketId}`, qrCanvas.width / 2, 30);
   
-      // Disegniamo il QR Code sotto il testo
       ctx.drawImage(img, 25, 50, 200, 200);
   
-      // Creiamo il link per il download
       const link = document.createElement("a");
       link.href = qrCanvas.toDataURL("image/png");
       link.download = `QRCode_Biglietto_${ticketId}.png`;
@@ -147,10 +135,7 @@ const MyTickets = ({ account }) => {
   
   
 
-  // 🔹 Funzione per rimborsare un biglietto
   const refundTicket = async (ticketId) => {
-    console.log(`🔄 Tentativo di rimborso per il biglietto ID: ${ticketId}`);
-    toast.info(`🔄 Tentativo di rimborso per il biglietto #${ticketId}`);
     setLoading(true);
     setMessage(null);
 
@@ -161,10 +146,8 @@ const MyTickets = ({ account }) => {
       const eventFactoryWithSigner = eventFactoryContract.connect(signer);
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
 
-      console.log("📡 Connessione ai contratti:", { paymentManagerWithSigner, eventFactoryWithSigner, ticketManagerWithSigner });
 
       const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
-      console.log("🎟️ Evento associato al biglietto:", eventId.toString());
 
       const isCancelled = await eventFactoryWithSigner.isEventCancelled(eventId);
       if (!isCancelled) {
@@ -189,12 +172,7 @@ const MyTickets = ({ account }) => {
           return;
       }
 
-      console.log(`💰 Importo del rimborso: ${refundAmount} ETH`);
-      toast.info(`💰 Rimborso di ${refundAmount} ETH in corso...`);
-
-      // ✅ Controlliamo se il contratto ha abbastanza fondi PRIMA di eseguire il rimborso
       const contractBalance = await provider.getBalance(paymentManagerContract.target);
-      console.log("💰 Saldo attuale del contratto:", ethers.formatEther(contractBalance));
 
       if (BigInt(ethers.parseEther(refundAmount)) > BigInt(contractBalance)) {
         console.error("❌ Il contratto non ha abbastanza fondi per il rimborso!");
@@ -203,21 +181,16 @@ const MyTickets = ({ account }) => {
         return;
       }
 
-      // ✅ Esegue il rimborso
-      console.log("💸 Avvio del rimborso...");
       const refundTx = await paymentManagerWithSigner.processRefund(
           userAddress, 
           ethers.parseEther(refundAmount.toString()), 
           { gasLimit: 500000 }
       );
       await refundTx.wait();
-      console.log("✅ Rimborso completato!");
       toast.success("✅ Rimborso completato!");
 
-      console.log("🔥 Bruciatura del biglietto in corso...");
       const burnTx = await ticketManagerWithSigner.refundTicket(ticketId);
       await burnTx.wait();
-      console.log("🔥 Biglietto bruciato!");
       toast.info("🔥 Biglietto eliminato dopo rimborso.");
 
       setTickets((prevTickets) => prevTickets.filter((t) => t.id !== ticketId.toString()));

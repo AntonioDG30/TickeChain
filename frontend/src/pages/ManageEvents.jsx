@@ -84,7 +84,7 @@ const ManageEvents = ({ account }) => {
       setShowModal(false);
       setFormData({ name: "", location: "", description: "", date: "", price: "", ticketsAvailable: "" });
 
-      fetchUserEvents(); // Aggiorna la lista eventi senza ricaricare la pagina
+      fetchUserEvents();
 
     } catch (error) {
       console.error("❌ Errore nella creazione dell'evento:", error);
@@ -120,9 +120,6 @@ const ManageEvents = ({ account }) => {
 
   const cancelEvent = async (eventId) => {
     try {
-      console.log(`🚨 Tentativo di annullamento per evento ID: ${eventId}`);
-      toast.info(`🚨 Tentativo di annullamento per evento #${eventId}`);
-
       const signer = await provider.getSigner();
       const eventFactoryWithSigner = eventFactoryContract.connect(signer);
 

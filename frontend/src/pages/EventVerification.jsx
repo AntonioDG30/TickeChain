@@ -46,11 +46,7 @@ const EventVerification = () => {
   
       const html5QrCode = new Html5Qrcode("qr-reader-file");
   
-      console.log("📂 File selezionato:", imageFile.name);
-      console.log("🔍 Tentativo di lettura QR Code dall'immagine...");
-  
       const result = await html5QrCode.scanFile(imageFile, false);
-      console.log("✅ QR Code letto con successo:", result);
       handleScan(result);
     } catch (error) {
       console.error("❌ Errore nella scansione dell'immagine:", error);
@@ -68,20 +64,15 @@ const EventVerification = () => {
       setScannedData({ ticketId, signerAddress });
   
       const signer = await provider.getSigner();
-      const userAddress = await signer.getAddress(); // Otteniamo l'account che sta verificando
+      const userAddress = await signer.getAddress(); 
       const ticketManagerWithSigner = ticketManagerContract.connect(signer);
       const eventFactoryWithSigner = eventFactoryContract.connect(signer);
   
-      // ✅ Recuperiamo l'ID dell'evento associato al biglietto
       const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
-      console.log("🎟️ Evento associato al biglietto:", eventId.toString());
   
-      // ✅ Recuperiamo il creatore dell'evento
       const eventDetails = await eventFactoryWithSigner.events(eventId);
       const eventCreator = eventDetails.creator;
-      console.log("👤 Creatore dell'evento:", eventCreator);
   
-      // ✅ Verifica se l'account dell'utente è il creatore dell'evento
       if (userAddress.toLowerCase() !== eventCreator.toLowerCase()) {
         console.error("❌ Non sei il creatore di questo evento!");
         toast.error("❌ Solo il creatore dell'evento può verificare i biglietti!");
@@ -89,7 +80,6 @@ const EventVerification = () => {
         return;
       }
   
-      // ✅ Controlla se il biglietto è già stato verificato
       const isAlreadyVerified = await ticketManagerWithSigner.isTicketVerified(ticketId);
       if (isAlreadyVerified) {
         console.warn("⚠️ Questo biglietto è già stato verificato!");
@@ -128,11 +118,9 @@ const EventVerification = () => {
       }
   
       const eventId = await ticketManagerWithSigner.ticketToEventId(ticketId);
-      console.log("🎟️ Evento associato al biglietto:", eventId.toString());
   
       const eventDetails = await eventFactoryWithSigner.events(eventId);
       const creatorAddress = eventDetails.creator;
-      console.log("👤 Creatore evento:", creatorAddress);
   
       if (creatorAddress === ethers.ZeroAddress) {
         toast.error("❌ Creatore dell'evento non trovato!");
@@ -140,21 +128,16 @@ const EventVerification = () => {
       }
   
       const releaseAmount = eventDetails.price ? ethers.formatEther(eventDetails.price) : "0";
-      console.log("💰 Importo da rilasciare:", releaseAmount);
-  
       const contractBalance = await provider.getBalance(paymentManagerContract.target);
-      console.log("💰 Saldo PaymentManager:", ethers.formatEther(contractBalance));
   
       if (BigInt(ethers.parseEther(releaseAmount)) > BigInt(contractBalance)) {
         toast.error("❌ Fondi insufficienti nel contratto per il pagamento!");
         return;
       }
   
-      console.log("✅ Marcatura del biglietto come verificato...");
       const markTx = await ticketManagerWithSigner.markTicketAsVerified(ticketId);
       await markTx.wait();
   
-      console.log("📤 Trasferimento fondi...");
       const tx = await paymentManagerWithSigner.releaseFundsToCreator(
         creatorAddress,
         ethers.parseEther(releaseAmount),
@@ -162,12 +145,9 @@ const EventVerification = () => {
       );
   
       await tx.wait();
-      console.log("✅ Fondi trasferiti con successo!");
-      toast.success("✅ Pagamento effettuato al creatore dell'evento!");
   
     } catch (error) {
       console.error("❌ Errore nel rilascio dei fondi:", error);
-      toast.error("❌ Errore nel trasferimento dei fondi!");
     } finally {
       setLoading(false);
     }
