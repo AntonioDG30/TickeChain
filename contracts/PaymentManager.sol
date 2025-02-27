@@ -64,7 +64,7 @@ contract PaymentManager is Pausable, Ownable {
      * @param _user Indirizzo dell'utente che deve ricevere il rimborso.
      * @param _amount Importo da rimborsare in wei.
      */
-    function processRefund(address _user, uint256 _amount) external onlyOwner whenNotPaused {
+    function processRefund(address _user, uint256 _amount) external whenNotPaused {
         uint256 contractBalance = address(this).balance;
 
         // Registra un log di debug per il rimborso
