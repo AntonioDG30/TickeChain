@@ -1,6 +1,6 @@
 # TickeChain
 
-TickeChain is a decentralized platform developed for the **Data Security** exam of the **Master's Degree in Cybersecurity** at **Università degli Studi di Salerno**.
+TickeChain is a decentralized platform developed for the **Data Security** exam of the **Master's Degree in Computer Science** at **Università degli Studi di Salerno**.
 
 TickeChain enables users to create events, issue **NFT-based tickets**, manage sales and refunds, and verify ticket validity using advanced cryptographic techniques. The entire system is designed to be **secure, flexible, and highly transparent**, eliminating intermediaries and providing advanced control tools for both organizers and participants. This ensures that event management is **decentralized and resistant to fraud**, while ticket validation is seamless and tamper-proof.
 
